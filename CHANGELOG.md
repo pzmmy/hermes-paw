@@ -2,6 +2,17 @@
 
 格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [未发布]
+
+### 重构
+
+- 输入区三条无状态带抽组件：`pages/chat/AttachmentStrip.ets`（1,505 B / 30 行）、
+  `BubbleMenu.ets`（3,973 B / 74 行）、`QuoteStrip.ets`（1,354 B / 24 行）
+- `ChatPage.ets` 69,170 → 65,588 B，`build()` 719 → 625 行（0.1.0 时是 1001 行）
+- 真机验证见 `docs/impl-status.md` §2.21（操作栏五钮条件正确、引用条点击清除、附件条 2→1）
+- `tools/s2b-selftest.py`：气泡栏/引用条的断言从「必须在 ChatPage.ets 内」改为
+  「组件持按键 + 页面持接线」，对 `pages/chat/*.ets` 联合扫描
+
 ## [0.1.2] — 2026-11-20
 
 这一版把 `ChatPage` 拆开、补上「退出登录」，并把版本号补到实际状态

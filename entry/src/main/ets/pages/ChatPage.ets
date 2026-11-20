@@ -32,6 +32,9 @@ import { ApprovalCard } from './chat/ApprovalCard';
 import { StatusBar } from './chat/StatusBar';
 import { LoginGate } from './chat/LoginGate';
 import { ChatNotice } from './chat/ChatNotice';
+import { QuoteStrip } from './chat/QuoteStrip';
+import { BubbleMenu } from './chat/BubbleMenu';
+import { AttachmentStrip } from './chat/AttachmentStrip';
 import { ServerProfile } from '../model/Profile';
 import { ApprovalControl } from '../model/Run';
 import { ToolStep } from '../model/ToolStep';
@@ -1459,135 +1462,41 @@ export struct ChatPage {
           })
           }
 
-          // S2-a: pending attachment row (album picker uris, removable
-          // before send; cleared on session switch / run accepted).
+          // S2-a: 待发图片条已搬到 pages/chat/AttachmentStrip.ets。
           if (this.v().pendingImages.length > 0) {
-            Row() {
-              ForEach(this.v().pendingImages, (uri: string) => {
-                Stack({ alignContent: Alignment.TopEnd }) {
-                  Image(uri)
-                    .width(56)
-                    .height(56)
-                    .objectFit(ImageFit.Cover)
-                    .borderRadius(8)
-                  Text('✕')
-                    .fontSize(10)
-                    .fontColor($r('app.color.text_inverse'))
-                    .backgroundColor($r('app.color.overlay'))
-                    .borderRadius(9)
-                    .width(18)
-                    .height(18)
-                    .textAlign(TextAlign.Center)
-                    .margin({ top: -4, right: -4 })
-                    .onClick(() => {
-                      this.onRemoveImage(uri);
-                    })
-                }
-                .margin({ right: 8 })
-              }, (uri: string) => uri)
-            }
-            .width('100%')
-            .padding({ left: 12, right: 12, bottom: 4 })
+            AttachmentStrip({
+              uris: this.v().pendingImages,
+              onRemove: (uri: string): void => {
+                this.onRemoveImage(uri);
+              }
+            })
           }
 
-          // S2-b: bubble action bar (contextual; above the input row).
+          // S2-b: 气泡操作栏已搬到 pages/chat/BubbleMenu.ets。
+          // 四个「有没有」判断在这里算成布尔（pendingApproval 需要收窄，
+          // 只能在方法层做）；六个动作直接接既有回调。
           if (this.menuFor !== null) {
-            Row() {
-              if (this.menuHasText()) {
-                Button($r('app.string.act_copy'))
-                  .fontSize(13)
-                  .height(36)
-                  .layoutWeight(1)
-                  .margin({ right: 6 })
-                  .backgroundColor($r('app.color.divider'))
-                  .fontColor($r('app.color.text_primary'))
-                  .onClick((): void => { this.onMenuCopy(); })
-              }
-              if (this.menuIsUser()) {
-                Button($r('app.string.act_resend'))
-                  .fontSize(13)
-                  .height(36)
-                  .layoutWeight(1)
-                  .margin({ right: 6 })
-                  .backgroundColor(accentTint())
-                  .fontColor(accentPrimary())
-                  .onClick((): void => { this.onMenuResend(); })
-              }
-              if (this.v().busy) {
-                Button($r('app.string.act_stop_gen'))
-                  .fontSize(13)
-                  .height(36)
-                  .layoutWeight(1)
-                  .margin({ right: 6 })
-                  .backgroundColor($r('app.color.danger'))
-                  .fontColor($r('app.color.text_inverse'))
-                  .onClick((): void => { this.onMenuStop(); })
-              }
-              if (this.v().pendingApproval !== null) {
-                Button($r('app.string.act_handle_appr'))
-                  .fontSize(13)
-                  .height(36)
-                  .layoutWeight(1)
-                  .margin({ right: 6 })
-                  .backgroundColor($r('app.color.warning_amber'))
-                  .fontColor($r('app.color.text_primary'))
-                  .onClick((): void => { this.onMenuApprove(); })
-              }
-              if (this.menuHasText()) {
-                Button($r('app.string.act_quote'))
-                  .fontSize(13)
-                  .height(36)
-                  .layoutWeight(1)
-                  .margin({ right: 6 })
-                  .backgroundColor($r('app.color.divider'))
-                  .fontColor($r('app.color.text_primary'))
-                  .onClick((): void => { this.onMenuQuote(); })
-              }
-              Button($r('app.string.act_delete'))
-                .fontSize(13)
-                .height(36)
-                .layoutWeight(1)
-                .margin({ right: 6 })
-                .backgroundColor($r('app.color.divider'))
-                .fontColor($r('app.color.danger'))
-                .onClick((): void => { this.onMenuDelete(); })
-              Button('✕')
-                .fontSize(13)
-                .height(36)
-                .width(36)
-                .backgroundColor($r('app.color.text_hint'))
-                .fontColor($r('app.color.text_inverse'))
-                .onClick((): void => { this.closeBubbleMenu(); })
-            }
-            .width('100%')
-            .padding({ left: 12, right: 12, bottom: 6 })
-            .backgroundColor($r('app.color.bg_page'))
-            .borderRadius(10)
+            BubbleMenu({
+              hasText: this.menuHasText(),
+              isUser: this.menuIsUser(),
+              busy: this.v().busy,
+              hasApproval: this.v().pendingApproval !== null,
+              onCopy: (): void => { this.onMenuCopy(); },
+              onResend: (): void => { this.onMenuResend(); },
+              onStop: (): void => { this.onMenuStop(); },
+              onApprove: (): void => { this.onMenuApprove(); },
+              onQuote: (): void => { this.onMenuQuote(); },
+              onDelete: (): void => { this.onMenuDelete(); },
+              onClose: (): void => { this.closeBubbleMenu(); }
+            })
           }
 
-          // S2-b: replying-to bar (quote context) — above the input.
+          // S2-b: 引用条已搬到 pages/chat/QuoteStrip.ets。
           if (this.hasQuote()) {
-            Row() {
-              Text($r('app.string.replying'))
-                .fontSize(12)
-                .fontColor($r('app.color.text_hint'))
-              Text(this.quoteText())
-                .fontSize(12)
-                .fontColor($r('app.color.text_hint'))
-                .maxLines(1)
-                .textOverflow({ overflow: TextOverflow.Ellipsis })
-                .layoutWeight(1)
-                .margin({ left: 4 })
-              Text('✕')
-                .fontSize(13)
-                .fontColor($r('app.color.text_hint'))
-                .margin({ left: 8 })
-                .onClick((): void => { this.onClearQuote(); })
-            }
-            .width('100%')
-            .padding({ left: 12, right: 12, bottom: 4 })
-            .backgroundColor($r('app.color.bg_subtle'))
-            .borderRadius(8)
+            QuoteStrip({
+              text: this.quoteText(),
+              onClear: (): void => { this.onClearQuote(); }
+            })
           }
           Row() {
             // U4: unified input bar — camera + text + mic live inside one

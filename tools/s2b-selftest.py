@@ -70,11 +70,22 @@ for loc in ["base", "zh_CN", "en_US"]:
 
 # ---------------- 3: wiring ----------------
 print("== wiring ==")
-check("act_quote" in psrc and "onMenuQuote" in psrc,
+# 2026-11-20: 气泡操作栏与引用条已抽成 pages/chat/BubbleMenu.ets 与
+# pages/chat/QuoteStrip.ets。按钮资源键与渲染在组件里，页面只保留回调接线，
+# 所以「键在页面里」的旧断言不再成立 —— 改为「组件持有按键、页面持有接线」，
+# 两者必须同时存在，强度不低于原断言。
+CHAT_DIR = ETS / "pages" / "chat"
+comps = ""
+if CHAT_DIR.exists():
+    for cp in sorted(CHAT_DIR.glob("*.ets")):
+        comps = comps + "\n" + cp.read_text(encoding="utf-8")
+callsrc = psrc + comps
+
+check("act_quote" in callsrc and "onMenuQuote" in psrc,
       "menu 引用 button -> onMenuQuote")
-check("act_delete" in psrc and "onMenuDelete" in psrc,
+check("act_delete" in callsrc and "onMenuDelete" in psrc,
       "menu 删除 button -> onMenuDelete")
-check("hasQuote" in psrc and "replying" in psrc,
+check("hasQuote" in psrc and "replying" in callsrc,
       "回复中 bar gated by hasQuote() + replying string")
 check("app.color.danger" in psrc, "delete confirm uses danger color")
 check("delete_msg_confirm" in psrc, "delete confirm uses delete_msg_confirm copy")
