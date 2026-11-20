@@ -2,6 +2,14 @@
 
 格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [未发布]
+
+### 重构
+
+- 会话面板抽成 `pages/chat/SessionPanel.ets`（@Component）：`ChatPage` 79,017 → 74,807 B，
+  `build()` 1001 → 899 行；数据单向流入、6 个回调回写父页 @State，面板不持有 ChatVM
+- 真机验证记录见 `docs/impl-status.md` §2.17（语音模块 ASR 日志、面板开关/长按/取消）
+
 ## [0.1.1] — 2026-11-20
 
 这一版没有新增用户可见功能，全部是「让别人敢用、让项目能维护」的东西。

@@ -27,6 +27,7 @@ import { SettingsVM } from '../viewmodel/SettingsVM';
 import { LocalMessage } from '../model/ChatMessage';
 import { LocalSession } from '../model/LocalSession';
 import { MergedSession } from '../viewmodel/SessionMerge';
+import { SessionPanel } from './chat/SessionPanel';
 import { ServerProfile } from '../model/Profile';
 import { ApprovalControl } from '../model/Run';
 import { ToolStep } from '../model/ToolStep';
@@ -1824,148 +1825,44 @@ export struct ChatPage {
     .width('100%')
     .height('100%')
 
-    // S1: server sessions takeover panel (opaque overlay on the chat)
+    // S1: 会话面板（本地 + 服务端合并）—— 已抽成 pages/chat/SessionPanel.ets
+    // 父页只提供数据（visibleRows / emptySessionCount）与回调，面板自身不持有 VM。
     if (this.vm !== null && this.showServerSessions) {
-      Column() {
-        Row() {
-          Text(Msg.t('m_chat_sessions'))
-            .fontSize(16)
-            .fontWeight(FontWeight.Bold)
-            .fontColor($r('app.color.text_primary'))
-            .layoutWeight(1)
-          // 体验-01: client-side filter for empty server sessions (the
-          // server accumulates empties; no cleanup endpoint yet). Reading
-          // hideEmpty here registers the @State dependency for re-render.
-          Text(this.hideEmpty
-            ? $r('app.string.filter_show_empty_fmt', String(this.emptySessionCount()))
-            : $r('app.string.filter_hide_empty_fmt', String(this.emptySessionCount())))
-            .fontSize(12)
-            .fontColor(this.hideEmpty ? '#757575' : accentPrimary())
-            .margin({ right: 12 })
-            .onClick(() => { this.hideEmpty = !this.hideEmpty; })
-          Text(this.v().serverSessionsLoading ? $r('app.string.refreshing') : $r('app.string.refresh'))
-            .fontSize(13)
-            .fontColor(accentPrimary())
-            .margin({ right: 16 })
-            .onClick(() => {
-              if (this.vm !== null) {
-                this.vm.listServerSessions();
-              }
-            })
-          Text($r('app.string.close_panel'))
-            .fontSize(13)
-            .fontColor($r('app.color.text_secondary'))
-            .onClick(() => { this.showServerSessions = false; })
-        }
-        .width('100%')
-        .padding({ left: 16, right: 8, top: 12, bottom: 8 })
-        .backgroundColor($r('app.color.bg_page'))
-
-        Row() {
-          TextInput({ placeholder: Msg.t('m_chat_search_hint'), text: this.sessionQuery })
-            .height(36)
-            .fontSize(13)
-            .layoutWeight(1)
-            .backgroundColor('#F2F2F2')
-            .borderRadius(8)
-            .onChange((val: string) => {
-              this.sessionQuery = val;
-            })
-        }
-        .width('100%')
-        .padding({ left: 16, right: 16, bottom: 8 })
-
-        if (this.v().error !== '') {
-          Column() {
-            Text(this.v().error)
-              .fontSize(12)
-              .fontColor($r('app.color.danger'))
-            Text($r('app.string.diag_hint'))
-              .fontSize(11)
-              .fontColor($r('app.color.text_hint'))
-              .margin({ top: 4 })
+      SessionPanel({
+        rows: this.visibleRows(),
+        loading: this.v().serverSessionsLoading,
+        errText: this.v().error,
+        emptyCount: this.emptySessionCount(),
+        hideEmpty: this.hideEmpty,
+        sessionQuery: this.sessionQuery,
+        onToggleHide: (): void => {
+          this.hideEmpty = !this.hideEmpty;
+        },
+        onQueryChange: (val: string): void => {
+          this.sessionQuery = val;
+        },
+        onRefresh: (): void => {
+          if (this.vm !== null) {
+            this.vm.listServerSessions();
           }
-          .width('100%')
-          .padding({ left: 16, right: 16, bottom: 4 })
-          .alignItems(HorizontalAlign.Start)
-        }
-
-        List() {
-          if (this.visibleRows().length === 0 && !this.v().serverSessionsLoading) {
-            ListItem() {
-              Text(this.sessionQuery.trim() !== ''
-                ? Msg.t('m_chat_no_match')
-                : $r('app.string.no_server_sessions'))
-                .fontSize(13)
-                .fontColor($r('app.color.text_hint'))
-                .width('100%')
-                .padding(16)
-            }
+        },
+        onClose: (): void => {
+          this.showServerSessions = false;
+        },
+        onPick: (m: MergedSession): void => {
+          if (m.isLocal && m.pk !== '') {
+            this.onOpenSession(m.pk);
+            this.showServerSessions = false;
+          } else {
+            this.onTakeover(m.sessionId, m.title);
           }
-          ForEach(this.visibleRows(), (m: MergedSession) => {
-            ListItem() {
-              Column() {
-                Row() {
-                  Text(m.isLocal ? Msg.t('m_chat_tag_local') : Msg.t('m_chat_tag_server'))
-                    .fontSize(10)
-                    .fontColor(m.isLocal ? accentPrimary() : $r('app.color.text_secondary'))
-                    .backgroundColor(m.isLocal ? accentTint() : '#EEEEEE')
-                    .borderRadius(4)
-                    .padding({ left: 5, right: 5, top: 1, bottom: 1 })
-                    .height(18)
-                    .margin({ right: 6 })
-                  Text(m.title !== '' ? m.title : $r('app.string.no_title'))
-                    .fontSize(14)
-                    .fontColor($r('app.color.text_primary'))
-                    .maxLines(1)
-                    .textOverflow({ overflow: TextOverflow.Ellipsis })
-                    .layoutWeight(1)
-                }
-                .width('100%')
-                .alignItems(VerticalAlign.Center)
-                Text(m.lastActiveMs > 0
-                  ? (this.fmtCount(m.messageCount) + ' · '
-                    + this.sessionTime(Math.floor(m.lastActiveMs / 1000)))
-                  : this.fmtCount(m.messageCount))
-                  .fontSize(11)
-                  .fontColor($r('app.color.text_hint'))
-                  .width('100%')
-                  .margin({ top: 2 })
-                if (m.preview !== '') {
-                  Text(m.preview)
-                    .fontSize(11)
-                    .fontColor($r('app.color.text_secondary'))
-                    .maxLines(1)
-                    .textOverflow({ overflow: TextOverflow.Ellipsis })
-                    .width('100%')
-                    .margin({ top: 2 })
-                }
-              }
-              .padding(12)
-              .alignItems(HorizontalAlign.Start)
-              .width('100%')
-              .onClick(() => {
-                if (m.isLocal && m.pk !== '') {
-                  this.onOpenSession(m.pk);
-                  this.showServerSessions = false;
-                } else {
-                  this.onTakeover(m.sessionId, m.title);
-                }
-              })
-              .gesture(LongPressGesture({ repeat: false })
-                .onAction((): void => {
-                  this.onSessionLongPress(m);
-                }))
-            }
-          }, (m: MergedSession) => m.key + '|' + m.title + '|' + String(m.lastActiveMs))
-        }
-        .width('100%')
-        .layoutWeight(1)
-        .divider({ strokeWidth: 1, color: '#EEEEEE' })
-      }
-      .width('100%')
-      .height('100%')
-      .backgroundColor($r('app.color.bg_card'))
+        },
+        onRowLongPress: (m: MergedSession): void => {
+          this.onSessionLongPress(m);
+        },
+        fmtCount: (n: number): string => this.fmtCount(n),
+        fmtTime: (tsSec: number): string => this.sessionTime(tsSec)
+      })
     }
     // P2: 未登录闸门覆盖层（设计文档 §9）——opaque，authMode =
     // 'loggedOut' 时盖住整个聊天数据面；登录成功后 profileVer 抬升 →

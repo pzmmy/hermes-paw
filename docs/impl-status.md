@@ -398,6 +398,35 @@ App **不转发**斜杠命令给网关（网关 REST 面不分发命令），而
 另有两次误操作：为找输入框点了 `📷` 图标打开相册选择器；按 `Back` 键把 App 退到桌面——
 脚本里不要用 `Back` 收键盘，改为点空白区。
 
+### 2.17 第二梯队重构的真机验证（VoiceInput / SessionPanel）
+
+两个整块外移都在真机（RS 80 / API 26，无线调试）上验过，不是只看编译。
+
+**① 语音块 → `viewmodel/VoiceInput.ets`**
+
+| 观察点 | 证据 |
+|---|---|
+| 新模块确实在跑 | hilog：`VoiceInput: ASR listening started`、`VoiceInput: ASR start session=voice-mwoiup69etas` |
+| 回调回写通路（onNotice） | 界面出现「未识别到语音」（10 秒无语音，VAD 收尾 → `m_vm_voice_empty`） |
+| 引擎生命周期 | 同一轮日志里 `ASR event code=3`（引擎事件）与 `ASR listening started` 成对出现 |
+| 与 ChatVM 的接线 | `ChatPage` 未改动，`v.startVoice(cb)` / `v.voiceState` 仍工作；文本链路同期正常（`auth probe` / `session history refreshed` 仍在打） |
+
+**② 会话面板 → `pages/chat/SessionPanel.ets`（@Component）**
+
+| 观察点 | 证据 |
+|---|---|
+| 面板渲染 | 标题「会话」、`隐藏空会话（5）`、`刷新`、`✕ 关闭`、`本地`/`服务端` 标签、`81 条 · 11-20 13:06` |
+| 开关（@Prop + 回调回写） | 点一次：文案 `隐藏空会话（5）` → `显示空会话（5）`，行数随之变化 |
+| 长按（回调 → 父页） | 长按首行弹出「删除会话」+「「Confirm end-to-end testing ok」将被删除（服务端会话与本地记录一并删除）。」 |
+| 弹窗可取消 | 点「取消」后弹窗消失、面板仍在，未删除任何会话 |
+| 搜索（上一轮模拟器已验） | 模拟器：`e2e` → 9 行降到 4 行；`zzzzz` → 0 行 +「No matching sessions」 |
+
+**体量变化**：`ChatVM` 99,016 → 90,781 B（余量 3,384 → 11,619 B）；`ChatPage` 79,017 → 74,807 B，
+`build()` 1001 → 899 行；新增 `VoiceInput.ets` 8,852 B 与 `SessionPanel.ets` 6,386 B。
+
+**未覆盖**：面板内搜索在**真机**上未逐字验证（模拟器验过）；`ChatPage` 剩余 899 行仍可继续拆
+（审批卡、登录闸门、状态条）。
+
 ### 2.16 会话删除守卫实测（真机；并纠正一个口径）
 
 **被测行为**：会话正在跑任务时，从会话面板长按删除它。
