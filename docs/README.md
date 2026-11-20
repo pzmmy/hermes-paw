@@ -19,6 +19,7 @@
 | 4b | [`channel-comparison.md`](channel-comparison.md) | **为什么不用现成的企微/微信通道**：两条链路的结构差异、十项能力逐条对比（安装/网络/推送/审批/停止/插话/历史/长输出/多网关/外泄面）、以及审批为什么必须做成 60 秒卡片。每条都给了网关源码位置便于复核。 | 想判断「该用哪个」的人；软文读者 | ✅ 现行，随网关版本复核 |
 | 5 | [`user-auth-and-settings-design.md`](user-auth-and-settings-design.md) | **邮箱验证码登录的设计与为何关闭**：网关侧 P1 已回退、客户端 P2 休眠（探针 404 → legacy 模式）、只上了精简的 P3。含重新启用路径。 | 评审鉴权相关改动的人 | ⏸️ 按决策休眠（D6） |
 | 6 | [`third-party-references.md`](third-party-references.md) | **许可边界**：本仓库 MIT、零第三方运行时依赖，以及 iHermes / Conduit / segno 的引用方式与限制。 | 分发者、下游打包、法务审阅 | ✅ 有效约束 |
+| 6b | [`promo/outline.md`](promo/outline.md) · [`promo/zh-main.md`](promo/zh-main.md) · [`promo/en-main.md`](promo/en-main.md) | **对外推广稿**：主稿提纲（5 节、技术占比 20%、三个必须交代的诚实点）与中英初稿。数字全部取自本仓库实测记录，可直接复核。 | 想了解项目定位的人；转载/引用者 | 📝 初稿，待作者定稿 |
 | 7 | [`test-target-s1.md`](test-target-s1.md) · [`-s2`](test-target-s2.md) · [`-s3`](test-target-s3.md) | **可机判的验收目标**：每阶段在动手前先写死"做到什么算完"，避免"完成"变成主观判断。可作为扩展本项目时的模板。 | 写测试的人 | 🗄️ 历史，作为范例仍有效 |
 | 8 | [`s3-c-token-recheck.md`](s3-c-token-recheck.md) | **Token 存储复核**：静态验证凭据只落在安全存储，零代码改动。 | 安全评审者 | 🗄️ 历史证据 |
 | 9 | [`dsh-smoke-arkts.md`](dsh-smoke-arkts.md) | **ArkTS 冒烟实验**：headless 模式下模型驱动能否一次产出可编译、API 无幻觉的鸿蒙组件。交代了本项目部分代码的产生方式。 | 好奇的贡献者 | 🗄️ 历史 |

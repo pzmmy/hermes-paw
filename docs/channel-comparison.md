@@ -24,7 +24,7 @@
 | **安装成本** | 零安装（手机本就有企微，扫码入应用） | 零安装（扫码登录，需保持进程在线） | 需装 HAP（DevEco 构建或分发），需扫码接入 |
 | **网络要求** | 有公网即可，跨网段/跨地域可用 | 同左 | **仅同一局域网**（不做公网中继） |
 | **到达方式** | 企微推送 + 系统通知，App 不在前台也收得到 | 微信推送 + 系统通知 | **无推送**：前台轮询；退到后台靠系统调度，及时性差 |
-| **执行审批（危险操作确认）** | **纯文本兜底**：审批提示以文本下发，用户回 `/approve`；网关默认窗口 **300 s**，超时**默认拒绝** | **未见执行审批接线**（插件里只有 DM 配对审批），危险操作基本无法在微信里确认 | **审批卡片**：四个选项（本次 / 本会话 / 固定 / 拒绝）+ **60 s** 倒计时，到点 fail-closed；真机三条路径实测过 |
+| **执行审批（危险操作确认）** | **支持，文本式四选一**：审批提示以文本下发（本次 / 本会话 / 固定 / 拒绝），用户回 `/approve`（也认 `yes`）或 `/deny`；默认窗口 **300 s**，超时**默认拒绝** | 走同一条文本审批通路，前提是插件能收到回复（个人微信插件未见专用接线，实际能力取决于插件版本，需自测） | **审批卡片**：同样四个选项，但是按钮 + **60 s** 倒计时 + 状态条实时刷新，到点 fail-closed；真机三条路径实测过（批准 700→777 / 拒绝保持 700 / 超时自动拒绝） |
 | **停止任务** | 文本命令 `/stop` 在网关命令层可识别（`gateway/run_busy.py` 按「停当前 chat 的活」处理） | 同上（取决于插件是否转发命令） | 顶部「停止」按钮，立即回显 `已停止` |
 | **中途纠偏（steer）** | 未接 | 未接 | 输入框直接发即为插话，回显 `已插入 / 插话未被接受` |
 | **run 生命周期可见性** | 只有聊天文本，看不到「排队/运行/等审批/收尾」状态 | 同左 | 三态状态条 + 每次轮询的 `status`、`outLen`、耗时 |
@@ -36,10 +36,12 @@
 
 ## 三、为什么 HermesPaw 的审批必须做成"卡片 + 60 秒"
 
-IM 通道的 `/approve` 文本确认有两个固有弱点：
+IM 通道的 `/approve` 文本确认能用，但有四个固有弱点（不是不能用，是**容易被忽略**）：
 
-1. **看不出"现在在等什么"**——聊天窗口里，一条审批提示很容易被后续消息淹没，用户不知道自己正卡在一个待决动作上；
-2. **窗口太长**——网关默认 300 s，对一条 `rm -rf` 或 `chmod -R 777` 来说，五分钟里发生别的事太容易，容易"顺手批了"。
+1. **看不见全局状态**——聊天窗口里一条审批提示很容易被后续消息淹没，用户不知道自己正卡在一个待决动作上；
+2. **窗口太长**——网关默认 300 s，对一条 `rm -rf` 或 `chmod -R 777` 来说，五分钟里插进别的事太容易，容易"顺手批了"；
+3. **没有倒计时的紧迫感**——文本里写了截止时间，但时间是静态的，不会随着剩余时间减少而提醒；
+4. **移动端打字成本**——在手机上敲 `/approve` 比点一下按钮慢，且要记语法（虽然也认 `yes`）。
 
 所以客户端的取舍是：**把审批做成一次显式的、有倒计时的、默认拒绝的交互**。三条路径（批准 / 拒绝 / 超时）都在真机上验过：批准后靶目录 700→777 且 exit 0；拒绝后保持 700；超时不点则自动拒绝、靶目录保持 700。
 
@@ -60,11 +62,11 @@ IM 通道的 `/approve` 文本确认有两个固有弱点：
 > when you are off-network: they push, they need no install, they work from anywhere.
 > What they cannot do is give you the *run* — the lifecycle, the approval decision, the steering.
 >
-> In the gateway source, interactive exec approval (`ExecApprovalPrompt`) is implemented for
-> Discord, Feishu, Matrix, QQ, Slack, Teams, Telegram and WhatsApp Cloud — **not** for WeCom or
-> WeChat. Those channels fall back to a plain-text prompt plus `/approve`, with the gateway's default
-> approval window of 300 seconds. HermesPaw instead reads `pending_controls` from
-> `GET /v1/runs/{id}` and renders a four-choice card with a 60-second fail-closed countdown.
+> WeCom *does* support exec approval — as a **plain-text prompt with four choices**, answered by
+> replying `/approve` (or `yes`) / `/deny`, inside the gateway's default 300-second window. Button
+> cards are only rendered by Discord, Feishu, Matrix, QQ, Slack, Teams, Telegram and WhatsApp Cloud.
+> HermesPaw reads `pending_controls` from `GET /v1/runs/{id}` and renders the same four choices as a
+> card with a 60-second fail-closed countdown, so the pending decision cannot be missed in a chat.
 >
 > The trade-off is deliberate: the app only speaks to the gateway on the same LAN, because an
 > approval is a decision a human should make on the spot, not one to expose to the public internet.
@@ -73,8 +75,9 @@ IM 通道的 `/approve` 文本确认有两个固有弱点：
 
 | 事实 | 位置 |
 |---|---|
-| 交互式审批的实现清单 | `plugins/platforms/*/adapter.py` 中引用 `ExecApprovalPrompt` 的适配器（discord/feishu/matrix/qqbot/slack/teams/telegram/whatsapp_cloud） |
-| 文本兜底 + 默认 300 s 窗口 | `gateway/platforms/base_exec_approval.py`（`approval_timeout_seconds()` 默认 300；文案 `gateway.exec_approval.deadline`） |
+| 按钮卡片适配器清单 | `plugins/platforms/*/adapter.py` 中引用 `ExecApprovalPrompt` 的适配器（discord/feishu/matrix/qqbot/slack/teams/telegram/whatsapp_cloud） |
+| 文本审批通路（所有通道兜底） | `gateway/run_turn_runner_approval_text.py`（`approval_text_prompt`，四选项逐步生成）；回复解析见 `gateway/run_busy.py`（`/approve` `/deny`，也认 `yes`） |
+| 默认 300 s 窗口与超时拒绝语义 | `gateway/platforms/base_exec_approval.py`（`approval_timeout_seconds()` 默认 300；`approval_timed_out_notice`） |
 | 企微审批走控制通道 + 30 条/分钟 | `plugins/platforms/wecom/adapter.py`：`send(..., metadata["is_approval_prompt"])` → `is_control`；注释标注 30 msgs/min（issue 846607） |
 | `/stop` 的语义 | `gateway/run_busy.py`（停在当前 chat 的活）；`gateway/platforms/api_server_runs.py` 的 REST 命令映射 |
 | App 侧审批渲染 | `entry/src/main/ets/viewmodel/ChatVM.ets`（消费 `pending_controls[0]`）+ `pages/ChatPage.ets`（卡片与 60 s 倒计时） |
