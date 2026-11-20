@@ -100,3 +100,14 @@ HDC=/path/to/hdc TARGET=<ip:port> bash tools/ohostest.sh
 ## 许可
 
 提交即表示你同意以 [MIT](LICENSE) 许可发布你的贡献。
+
+### 改到轮询 / 取数链路时
+
+除 `make test` 外，还要跑真机回归（断言自适应拍距，不看代码长相）：
+
+```bash
+HDC="/path/to/hdc" TARGET=<ip:port> make poll-verify
+```
+
+它会发一条会长回答的消息、抓 28 秒 hilog，校验 `2s -> 4s -> 5s` 的降频曲线与拍点数。
+`tools/poll-scheduler-selftest.py` 里另有一层不用设备的纯逻辑校验（含失败用例的状态机镜像）。

@@ -9,6 +9,10 @@
 #   make l2     —— arkts-lint / api-selftest / s2 / s3 / s15 / slash
 #                  无 key 时需要网关的两项自动 SKIP（rc=77），不算失败。
 #
+# 轮询回归（真机 + 可达网关；CI 不跑，需要设备）：
+#   HDC="<hdc路径>" TARGET=<ip:port> make poll-verify
+#   发一条会长回答的消息，抓 28s hilog，校验 2s -> 4s -> 5s 自适应曲线。
+
 # ArkTS 设备单测（hypium，跑在真机/模拟器上，需 DevEco Studio）：
 #   1) DevEco 里 Run 'entry > ohosTest'，或 CLI 打测试包：
 #        hvigorw --mode module -p module=entry@ohosTest -p product=default assembleHap
@@ -17,7 +21,7 @@
 
 PYTHON ?= python3
 
-.PHONY: help test lint scan export l2 clean
+.PHONY: help test lint scan export l2 clean poll-verify
 
 help:
 	@echo "make test    # 全部静态自测（无设备依赖）"
@@ -25,6 +29,7 @@ help:
 	@echo "make scan    # 零凭据 / 零内网 IP 扫描"
 	@echo "make export  # 生成开源导出包到 OUT=<dir>（默认 ./dist/opensource）"
 	@echo "make l2      # L2 门（需 API_SERVER_KEY，无 key 自动 SKIP）"
+	@echo "make poll-verify HDC=<hdc> TARGET=<ip:port>  # 轮询回归（需真机+网关）"
 
 # 静态自测 + 网关自测：
 #   - 逐个跑 tools/*selftest*.py
@@ -66,3 +71,7 @@ l2:
 
 clean:
 	rm -rf dist
+
+# 轮询回归：断言自适应拍距曲线（需要真机）
+poll-verify:
+	@HDC="$(HDC)" TARGET="$(TARGET)" bash tools/poll-verify.sh

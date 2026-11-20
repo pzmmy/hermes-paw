@@ -16,6 +16,9 @@
   run 身份、拍距、1 秒秒表归它；`ChatVM` 只留放弃判据、快照归并、收口语义
 - `ChatVM.ets` 90,781 → 89,200 B（删 6 个字段 + `armBaselineTicker()`）
 - 真机验到完整自适应曲线：2s×3 → 4s×3 → 5s 封顶，且停止/收口/秒表均正常（`docs/impl-status.md` §2.22）
+- 轮询验证固化成两条命令：`tools/poll-scheduler-selftest.py`（进 `make test`，静态 + 假时钟状态机
+  镜像 16 条断言）、`tools/poll-verify.sh` / `make poll-verify`（真机抓 hilog 断言自适应曲线）
+- `CONTRIBUTING.md` 补「改到轮询/取数链路时要跑什么」
 
 ## [0.1.2] — 2026-11-20
 
