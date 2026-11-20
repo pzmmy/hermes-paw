@@ -1,0 +1,29 @@
+name: selftest
+
+# 只跑静态检查。**不编译 HAP**——hvigor 由 DevEco Studio 提供，ohpm 公共仓库里没有，
+# GitHub runner 上装不出来。编译与真机验证必须在本地做（见 CONTRIBUTING.md）。
+# 所以：CI 绿 ≠ 能编译，只等于静态自测通过。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Static self-tests（tools/*selftest*.py）
+        run: make test
+
+      - name: arkts-lint
+        run: make lint
+
+      - name: Secret / internal-IP scan
+        run: make scan

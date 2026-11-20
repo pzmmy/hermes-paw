@@ -1,0 +1,58 @@
+name: Bug report
+description: 报告一个可复现的问题（界面、连接、审批、会话等）
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "先说一句：这个应用只在同一局域网内工作，没有网关时连不上不是 bug。报之前请看 SECURITY.md 里「已知的非漏洞」一节。"
+  - type: input
+    id: app-version
+    attributes:
+      label: HermesPaw 版本
+      description: Release 页面上的版本号，或你构建时的提交号
+    validations:
+      required: true
+  - type: input
+    id: gateway-version
+    attributes:
+      label: 网关版本
+      description: hermes --version 的输出
+    validations:
+      required: false
+  - type: dropdown
+    id: device
+    attributes:
+      label: 运行环境
+      options:
+        - 真机（HarmonyOS NEXT / API 12+）
+        - 模拟器（DevEco）
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 越具体越好，能写成几条就几条
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+      description: 有错误文案请原样贴出来，有截图更好
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志（可选）
+      description: hdc shell hilog 里相关的几行。贴之前先看一眼有没有内网地址或密钥。
+    validations:
+      required: false

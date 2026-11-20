@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 安全问题（请走私密渠道）
+    url: https://github.com/pzmmy/hermes-paw/security/advisories/new
+    about: 漏洞、凭据泄漏、越权等，请不要开公开 Issue，走 Security Advisories。
+  - name: 使用与构建问题
+    url: https://github.com/pzmmy/hermes-paw/blob/main/CONTRIBUTING.md
+    about: 三种检查怎么跑、CI 为什么只跑静态自测，都写在这里。
+  - name: 和企微 / 微信通道怎么选
+    url: https://github.com/pzmmy/hermes-paw/blob/main/docs/channel-comparison.md
+    about: 十项逐条对比，每条都标了网关源码位置。

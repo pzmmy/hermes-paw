@@ -1,6 +1,7 @@
 # HermesPaw
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![selftest](https://github.com/pzmmy/hermes-paw/actions/workflows/selftest.yml/badge.svg)](https://github.com/pzmmy/hermes-paw/actions/workflows/selftest.yml)
 > 中文（本文件） · [English](README.en.md)
 
 HarmonyOS NEXT 原生客户端，对接 [Hermes Agent](https://github.com/NousResearch/hermes-agent) 网关。
@@ -194,3 +195,4 @@ MIT（见 `LICENSE`）。第三方引用与许可清单见 `docs/third-party-ref
 - 设计文档保留在 `docs/` 下，属实现层事实记录，可能随代码演进更新；
   中文索引页（每篇文档回答什么问题、给谁看、是否仍为准）→ **[`docs/README.md`](docs/README.md)**；
   英文索引 → [`docs/README.en.md`](docs/README.en.md)。
+- 想参与开发看 [`CONTRIBUTING.md`](CONTRIBUTING.md)（三种检查怎么跑、CI 为什么不编译 HAP）；安全问题走 [`SECURITY.md`](SECURITY.md) 的私密渠道。

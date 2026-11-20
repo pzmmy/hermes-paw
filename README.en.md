@@ -1,6 +1,7 @@
 # HermesPaw
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![selftest](https://github.com/pzmmy/hermes-paw/actions/workflows/selftest.yml/badge.svg)](https://github.com/pzmmy/hermes-paw/actions/workflows/selftest.yml)
 ![HarmonyOS](https://img.shields.io/badge/HarmonyOS-NEXT%20%2F%20API%2012%2B-black)
 
 > A native HarmonyOS client for the **Hermes Agent** gateway — pure ArkTS, zero third-party runtime dependencies.
@@ -162,3 +163,5 @@ dependencies; the only vendored code is BSD-3 `segno` used by the QR helper scri
 - Design documents under `docs/` are implementation-level records in Simplified Chinese; they evolve with the code.
   Start from the English index: **[`docs/README.en.md`](docs/README.en.md)** — it says what each document
   answers, who it is for, and whether it is still authoritative (Simplified Chinese index: [`docs/README.md`](docs/README.md)).
+- Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md) (how to run the three checks, and why CI does not build the HAP).
+- Security: report privately via [`SECURITY.md`](SECURITY.md).
