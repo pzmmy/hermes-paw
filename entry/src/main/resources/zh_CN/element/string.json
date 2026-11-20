@@ -1379,6 +1379,30 @@
     {
       "name": "m_session_delete_fail",
       "value": "删除会话失败："
+    },
+    {
+      "name": "settings_group_account",
+      "value": "账号"
+    },
+    {
+      "name": "settings_signout",
+      "value": "退出登录"
+    },
+    {
+      "name": "settings_signout_hint",
+      "value": "退出后本机不再保存该网关的会话；重新接入需再扫码或输入 Key。"
+    },
+    {
+      "name": "signout_dialog_title",
+      "value": "退出登录"
+    },
+    {
+      "name": "signout_dialog_msg_fmt",
+      "value": "将清除「%s」在本机保存的会话。重新接入需再扫码或输入 Key。"
+    },
+    {
+      "name": "signout_done",
+      "value": "已退出登录"
     }
   ]
 }

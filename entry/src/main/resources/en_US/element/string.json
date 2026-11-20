@@ -1379,6 +1379,30 @@
     {
       "name": "m_session_delete_fail",
       "value": "Failed to delete the session: "
+    },
+    {
+      "name": "settings_group_account",
+      "value": "Account"
+    },
+    {
+      "name": "settings_signout",
+      "value": "Sign out"
+    },
+    {
+      "name": "settings_signout_hint",
+      "value": "Signing out removes this device's session for the gateway. You will need to scan the QR code or enter the key again."
+    },
+    {
+      "name": "signout_dialog_title",
+      "value": "Sign out"
+    },
+    {
+      "name": "signout_dialog_msg_fmt",
+      "value": "This clears the session stored on this device for \"%s\". You will need to set it up again."
+    },
+    {
+      "name": "signout_done",
+      "value": "Signed out"
     }
   ]
 }

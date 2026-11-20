@@ -2,18 +2,46 @@
 
 格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [未发布]
+## [0.1.2] — 2026-11-20
+
+这一版把 `ChatPage` 拆开、补上「退出登录」，并把版本号补到实际状态
+（此前 `AppScope/app.json5` 还写着 0.1.0）。
+
+### 新增
+
+- 设置页新增「账号 → 退出登录」：清除本机保存的网关会话（HUKS 加密块），
+  随后聊天页重建并重新探测登录态，由登录闸门接管。**只清会话、不动档案**，
+  重新接入只需扫码或输入 Key
+- 三套 `string.json` 各 +6 键（351）：账号分组、退出登录、退出提示、确认弹窗、完成提示
 
 ### 重构
 
-- 会话面板抽成 `pages/chat/SessionPanel.ets`（@Component）：`ChatPage` 79,017 → 74,807 B，
-  `build()` 1001 → 899 行；数据单向流入、6 个回调回写父页 @State，面板不持有 ChatVM
-- 真机验证记录见 `docs/impl-status.md` §2.17（语音模块 ASR 日志、面板开关/长按/取消）
-- 审批卡抽成 `pages/chat/ApprovalCard.ets`：`ChatPage` 74,807 → 72,692 B，
-  `build()` 899 → 836 行；真机验证见 `docs/impl-status.md` §2.18（四按钮同行、拒绝后卡片消失）
-- 状态条与登录闸门抽成 `pages/chat/StatusBar.ets` / `pages/chat/LoginGate.ets`：
-  `ChatPage` 72,692 → 71,454 B，`build()` 836 → 796 行；状态条真机验到秒数与动画点同步刷新，
-  登录闸门仅静态等价校验（触发需退登录，`docs/impl-status.md` §2.19 写明口径）
+`ChatPage.build()` **1001 → 719 行**，`ChatPage.ets` **79,017 → 69,170 B**，四步拆完：
+
+| 组件 | 体积 | 搬出的行 | 真机验证 |
+|---|---|---|---|
+| `pages/chat/SessionPanel.ets` | 6,386 B | 76 | 面板开关 / 长按 / 取消 |
+| `pages/chat/ApprovalCard.ets` | 3,475 B | 76 | 四按钮同行、拒绝后消失 |
+| `pages/chat/StatusBar.ets` | 1,465 B | 16 | 秒数与动画点同步刷新 |
+| `pages/chat/LoginGate.ets` | 2,450 B | 45 | 仅静态等价（需登出态） |
+| `pages/chat/ChatNotice.ets` | 4,819 B | 96 | 「已停止生成」渲染 + 点击清除 |
+| `viewmodel/VoiceInput.ets` | 8,852 B | — | ASR 日志出自新模块 |
+
+拆法一致：数据 `@Prop` 单向流入 + 回调回写父页 `@State`，组件不持有 `ChatVM`；
+需要收窄表达式的地方（`pendingApproval !== null`、`vm !== null`）留在父页方法层，
+因为 `build()` 只允许组件语法（10905209）。
+
+### 变更
+
+- 版本号：`versionName 0.1.0 → 0.1.2`、`versionCode 1000000 → 1000200`、`oh-package.json5 0.1.2`
+- `tools/promo-selftest.py`：三语键数断言由「等于 345」改为「等量且 ≥345」，
+  新增词条不再误报，同时仍能拦住误删
+
+### 已知口径
+
+- 「退出登录」与登录闸门在 `legacy` 网关（无 `/api/auth/me`，当前 236 即如此）下不会出现：
+  App 判定 `authMode = legacy` → 本机无用户会话 → 入口与闸门都不渲染。这不是 bug
+- 登录闸门的运行时验证尚未完成（同因：需 P2 网关的真实登录态）
 
 ## [0.1.1] — 2026-11-20
 

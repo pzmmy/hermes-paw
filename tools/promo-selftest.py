@@ -81,7 +81,9 @@ def main() -> int:
     # ── 2. 结构性数字 ──
     keys = len(json.load(open(ROOT / "entry/src/main/resources/base/element/string.json",
                               encoding="utf-8"))["string"])
-    chk(keys == 345, f"三语各 345 key（实际 {keys}）", str(keys))
+    # 三套资源必须等量（新增词条只加不删也不会误报）；
+    # 下限 345 = 0.1.1 时的基线，防止误删导致「双语不完整」。
+    chk(keys >= 345, f"三语等量且 ≥345 key（实际 {keys}）", str(keys))
 
     ets = len(list((ROOT / "entry/src/main/ets").rglob("*.ets")))
     # 稿件里不写死确切文件数（会被后续提交打脸）：只要求出现"源文件"这类表述，

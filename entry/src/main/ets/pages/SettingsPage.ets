@@ -22,6 +22,7 @@ import { ChatVM } from '../viewmodel/ChatVM';
 import { JobsApi, JobInfo } from '../net/JobsApi';
 import { ApiClient } from '../net/ApiClient';
 import { TokenVault } from '../store/TokenVault';
+import { loadAuthIdentity, clearAuthIdentity, AuthIdentity } from '../store/AuthSession';
 import { ServerProfile, NetworkKind } from '../model/Profile';
 import { PROFILE_CHANGED_EVENT_ID } from './ScanPage';
 import { accentPrimary, accentTint, accentSavedIndex, accentSave, ACCENT_PRESETS, AccentPreset } from '../theme/Accent';
@@ -53,6 +54,9 @@ export struct SettingsPage {
   @State accentIdx: number = 0;
   /** 恢复轮询基础间隔（秒），Slider 显示值。范围 1~60，默认 5。
    *  aboutToAppear 时从 DbHelper 读，onRecoverPollChange 保存。 */
+  /** 本机是否存有当前网关的登录会话（决定「退出登录」是否显示）。
+   *  aboutToAppear 里 svm.load() 之后读取；退出成功后置 false。 */
+  @State hasSession: boolean = false;
   @State recoverPollSec: number = 5;
   /** Conduit 借鉴：定时任务列表（/api/jobs）。aboutToAppear 时加载。 */
   @State jobList: JobInfo[] = [];
@@ -123,6 +127,13 @@ export struct SettingsPage {
         let active: ServerProfile | null = svm.getActiveProfile();
         if (active !== null && active.isConfigured()) {
           let prof: ServerProfile = active;
+          // 退出登录的可见性：本机是否存有该 profile 的会话（读失败按「无」处理）。
+          loadAuthIdentity(ctx, prof).then((id: AuthIdentity | null): void => {
+            page2.hasSession = id !== null;
+          }).catch((err: Error): void => {
+            page2.hasSession = false;
+            LogSafe.w(TAG, 'loadAuthIdentity failed: %{public}s', err.message);
+          });
           let ac: ApiClient = new ApiClient();
           ac.configure(prof.baseUrl, '', prof.role, prof.pf);
           // token 从 TokenVault 异步加载（不阻塞 UI）
@@ -297,6 +308,48 @@ export struct SettingsPage {
             if (ok) {
               this.notifyProfileChanged();
             }
+          });
+        } }
+      ]
+    });
+  }
+
+  /** 退出登录：清除本机保存的网关会话（HUKS 加密块），随后通知 Index 抬升
+   *  profileVer —— 聊天页重建 VM → connect() → /me 无有效会话 → 401 →
+   *  authMode 翻成 'loggedOut' → 登录闸门接管整屏。
+   *  不动档案本身（baseUrl/角色仍保留），只清会话：重新接入只需扫码/输入 Key。 */
+  private confirmSignOut(): void {
+    let s: SettingsVM | null = this.vm;
+    if (s === null) {
+      return;
+    }
+    let active: ServerProfile | null = s.getActiveProfile();
+    if (active === null) {
+      return;
+    }
+    let name: string = active.name !== '' ? active.name : active.baseUrl;
+    this.getUIContext().showAlertDialog({
+      title: $r('app.string.signout_dialog_title'),
+      message: $r('app.string.signout_dialog_msg_fmt', name),
+      buttons: [
+        { value: $r('app.string.cancel'), fontColor: '#757575', action: (): void => {} },
+        { value: $r('app.string.settings_signout'), fontColor: '#E53935', action: (): void => {
+          let ctx: common.UIAbilityContext =
+            this.getUIContext().getHostContext() as common.UIAbilityContext;
+          clearAuthIdentity(ctx, active).then((): void => {
+            this.hasSession = false;
+            LogSafe.i(TAG, 'signed out (identity cleared)');
+            // 让聊天页重建 VM 并重新探测登录态（401 → 闸门）。
+            this.notifyProfileChanged();
+            // 页面内反馈：走 SettingsVM.notice（本页已有渲染位），
+            // diagTick 自增强制重绘（VM 是普通类，@State 观察不到）。
+            let svm: SettingsVM | null = this.vm;
+            if (svm !== null) {
+              svm.notice = Msg.t('signout_done');
+              this.diagTick += 1;
+            }
+          }).catch((err: Error): void => {
+            LogSafe.w(TAG, 'clearAuthIdentity failed: %{public}s', err.message);
           });
         } }
       ]
@@ -730,6 +783,34 @@ export struct SettingsPage {
               .fontColor($r('app.color.text_hint'))
               .margin({ top: 12, bottom: 16 })
               .alignSelf(ItemAlign.Start)
+
+            // ===== 第 4 组：账号（退出登录）=====
+            // 只在「本机存有当前网关会话」时出现；退出后闸门接管聊天页。
+            if (this.hasSession) {
+              Text($r('app.string.settings_group_account'))
+                .fontSize(13)
+                .fontColor($r('app.color.text_hint'))
+                .padding({ top: 8, bottom: 8 })
+                .alignSelf(ItemAlign.Start)
+
+              Text($r('app.string.settings_signout'))
+                .fontSize(15)
+                .fontColor($r('app.color.danger'))
+                .width('100%')
+                .height(48)
+                .textAlign(TextAlign.Center)
+                .backgroundColor($r('app.color.bg_card'))
+                .borderRadius(10)
+                .onClick(() => {
+                  this.confirmSignOut();
+                })
+
+              Text($r('app.string.settings_signout_hint'))
+                .fontSize(11)
+                .fontColor($r('app.color.text_hint'))
+                .margin({ top: 8, bottom: 16 })
+                .alignSelf(ItemAlign.Start)
+            }
           }
           .padding({ left: 12, right: 12 })
           .width('100%')

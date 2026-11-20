@@ -2,8 +2,8 @@
   "app": {
     "bundleName": "com.pzmmy.hermespaw",
     "vendor": "pzmmy",
-    "versionCode": 1000000,
-    "versionName": "0.1.0",
+    "versionCode": 1000200,
+    "versionName": "0.1.2",
     "icon": "$media:icon",
     "label": "$string:app_name"
   }

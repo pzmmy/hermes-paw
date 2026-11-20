@@ -31,6 +31,7 @@ import { SessionPanel } from './chat/SessionPanel';
 import { ApprovalCard } from './chat/ApprovalCard';
 import { StatusBar } from './chat/StatusBar';
 import { LoginGate } from './chat/LoginGate';
+import { ChatNotice } from './chat/ChatNotice';
 import { ServerProfile } from '../model/Profile';
 import { ApprovalControl } from '../model/Run';
 import { ToolStep } from '../model/ToolStep';
@@ -989,6 +990,30 @@ export struct ChatPage {
     router.pushUrl({ url: 'pages/SettingsPage' });
   }
 
+  /** 提示条的三个动作（U1/U2/A2、E3）：VM 是普通类，收窄放在方法层——
+   *  build() 里只允许组件语法（10905209），闭包内联判断易被 ArkTS 拒绝。 */
+  private onNoticeRetry(): void {
+    let m: ChatVM | null = this.vm;
+    if (m !== null && !m.busy) {
+      // P4⑤: retry the last message (or reconnect if none sent).
+      m.retryLastError();
+    }
+  }
+
+  private onNoticeClearSuccess(): void {
+    let m: ChatVM | null = this.vm;
+    if (m !== null) {
+      m.clearSuccess();
+    }
+  }
+
+  private onNoticeClearNotice(): void {
+    let m: ChatVM | null = this.vm;
+    if (m !== null) {
+      m.clearNotice();
+    }
+  }
+
   /** P2: 打开登录页（设计文档 §9 数据面闸门）。 */
   private gotoLogin(): void {
     router.pushUrl({ url: 'pages/LoginPage' });
@@ -1099,102 +1124,25 @@ export struct ChatPage {
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
       } else {
-        if (this.v().error !== '') {
-          // U1/U2/A2: top warning bar — left color bar + light-red rounded
-          // card; primary error 14px/500, secondary hint 12px; inline
-          // 重试 (re-run connect) + 连接测试 (jump to Settings diagnose).
-          Row() {
-            Column()
-              .width(4)
-              .height('100%')
-              .borderRadius(2)
-              .backgroundColor($r('app.color.danger'))
-            Column() {
-              Text(this.v().error)
-                .fontSize(14)
-                .fontWeight(FontWeight.Bold)
-                .fontColor($r('app.color.danger_deep'))
-              Text($r('app.string.diag_hint'))
-                .fontSize(12)
-                .fontColor($r('app.color.text_hint'))
-                .margin({ top: 4 })
-              Row() {
-                Text($r('app.string.retry'))
-                  .fontSize(13)
-                  .fontColor($r('app.color.text_inverse'))
-                  .padding({ left: 16, right: 16, top: 6, bottom: 6 })
-                  .borderRadius(6)
-                  .backgroundColor($r('app.color.danger'))
-                  .margin({ top: 8, right: 8 })
-                  .onClick(() => {
-                    if (this.vm !== null && !this.vm.busy) {
-                      // P4⑤: retry the last message (or reconnect if none sent).
-                      this.vm.retryLastError();
-                    }
-                  })
-                Text($r('app.string.conn_test'))
-                  .fontSize(13)
-                  .fontColor(accentPrimary())
-                  .padding({ left: 16, right: 16, top: 6, bottom: 6 })
-                  .borderRadius(6)
-                  .backgroundColor(accentTint())
-                  .margin({ top: 8 })
-                  .onClick(() => {
-                    this.gotoSettingsDiagnose();
-                  })
-              }
-            }
-            .padding(10)
-            .layoutWeight(1)
+        // 三段横幅（错误 / 成功 / 提示）已搬到 pages/chat/ChatNotice.ets。
+        // 互斥优先级仍是 错误 > 成功 > 提示；互动全部走回调，busy 判断在方法层。
+        ChatNotice({
+          errorText: this.v().error,
+          successText: this.v().success,
+          noticeText: this.v().notice,
+          onRetry: (): void => {
+            this.onNoticeRetry();
+          },
+          onTestConn: (): void => {
+            this.gotoSettingsDiagnose();
+          },
+          onClearSuccess: (): void => {
+            this.onNoticeClearSuccess();
+          },
+          onClearNotice: (): void => {
+            this.onNoticeClearNotice();
           }
-          .width('100%')
-          .backgroundColor($r('app.color.danger_soft'))
-          .borderRadius(10)
-          .padding(8)
-        } else if (this.v().success !== '') {
-          // E3: green success bar (连接成功) — dismissible via ×.
-          // BUG-005 回归修复: 绿色竖条 height('100%') 会撑满整个页面高度、
-          // 把下方聊天 UI 挤到屏幕外（成功条常驻时聊天页不可用）。改为固定
-          // 小高度 + Row 固定高度，成功条只是一条横幅，不占满整页。
-          Row() {
-            Column()
-              .width(4)
-              .height(18)
-              .borderRadius(2)
-              .backgroundColor($r('app.color.success'))
-            Text(this.v().success)
-              .fontSize(13)
-              .fontColor($r('app.color.success'))
-              .layoutWeight(1)
-              .padding(10)
-            Text('×')
-              .fontSize(16)
-              .fontColor($r('app.color.text_secondary'))
-              .padding({ left: 12, right: 12 })
-              .onClick(() => {
-                if (this.vm !== null) {
-                  this.vm.clearSuccess();
-                }
-              })
-          }
-          .width('100%')
-          .height(40)
-          .alignItems(VerticalAlign.Center)
-          .backgroundColor($r('app.color.success_soft'))
-          .borderRadius(10)
-          .padding(4)
-        } else if (this.v().notice !== '') {
-          Text(this.v().notice)
-            .fontSize(12)
-            .fontColor(accentPrimary())
-            .padding(8)
-            .width('100%')
-            .onClick(() => {
-              if (this.vm !== null) {
-                this.vm.clearNotice();
-              }
-            })
-        }
+        })
 
         // S9a-2a：顶部只留一行 —— [≡ 会话] 当前标题 [＋ 新对话]。
         // 旧的一排会话 pill 撤掉（会话多了横向滑不动，且长标题会把 pill 撑爆）；

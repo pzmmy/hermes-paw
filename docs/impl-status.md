@@ -398,6 +398,56 @@ App **不转发**斜杠命令给网关（网关 REST 面不分发命令），而
 另有两次误操作：为找输入框点了 `📷` 图标打开相册选择器；按 `Back` 键把 App 退到桌面——
 脚本里不要用 `Back` 收键盘，改为点空白区。
 
+### 2.20 退出登录 + 三态提示条抽组件（0.1.2）
+
+**① 退出登录（设置 → 账号）**
+
+实现：`SettingsPage.confirmSignOut()` → `clearAuthIdentity(ctx, activeProfile)` 清掉 HUKS
+加密块里的会话 → `notifyProfileChanged()` 抬升 `profileVer` → 聊天页重建 VM → `connect()`
+→ `kickoffAuthProbe()` 走 `/api/auth/me` 无有效会话 → 401 → `authMode = 'loggedOut'` →
+登录闸门接管整屏。**只清会话，不动档案**（baseUrl/角色保留），重新接入只需扫码或输入 Key。
+
+入口可见性取决于「本机是否存有该网关的会话」：`aboutToAppear` 里 `loadAuthIdentity()`
+有值才渲染，失败/无值按「无」处理。
+
+**实测（真机 RS 80 / API 26 + 模拟器 API 26）**
+
+| 观察点 | 结果 |
+|---|---|
+| 版本落位 | `bm dump` → `versionCode 1000200` / `versionName 0.1.2` |
+| 设置页底部 | 滚到底只有「Token 加密存储。」；**无「账号」分组、无「退出登录」** |
+| 原因（已查实） | `curl http://<网关>:8377/api/auth/me` → **404** —— 网关处于 `legacy` 模式 |
+| App 判定 | `authMode = legacy` → `hasSession = false` → 入口正确隐藏（不是漏渲染） |
+
+**因此这条功能在当前环境是「装好但休眠」**：网关没有用户会话概念，就没有可退出的会话。
+按「gateway 不改」的约束，也没有去启用 dashboard_auth。要让它变活，需要一台启用了
+`/api/auth/*` 的网关；届时同一条链路即可产出运行时证据。
+
+**② 三态提示条 → `pages/chat/ChatNotice.ets`**
+
+原 96 行（错误 / 成功 / 提示三条互斥分支）整块外移，优先级仍是 错误 > 成功 > 提示。
+因为自定义组件 `build()` 只允许一个根节点，外面加了一层 `Column().width('100%')`；
+三条都为空时高度为 0，与「什么都不渲染」等价。
+
+动作收敛成父页三个方法（`onNoticeRetry` / `onNoticeClearSuccess` / `onNoticeClearNotice`），
+`vm !== null` 与 `busy` 判断都在方法层——`build()` 里只允许组件语法（10905209）。
+
+| | 改前 | 改后 |
+|---|---|---|
+| `ChatPage.ets` | 71,454 B | **69,170 B** |
+| `ChatPage.build()` | 796 行 | **719 行** |
+| `chat/ChatNotice.ets` | — | **4,819 B** |
+
+**真机验证（RS 80 / API 26）**：发一条长任务 → 点「停止」→ 弹「停止运行？」→ 确认 →
+顶部出现 **(660,182) 已停止生成**（走 notice 分支，`m_vm_stopped`）→ 点击该条 →
+再次 `dumpLayout` 里「已停止生成」**消失**（`clearNotice()` 生效）。
+
+**静态等价**：旧块 53 条样式修饰器 vs 新组件 54 条（多出的是包裹 Column 的
+`width('100%')`），双向差异为空；`$r()` 资源引用 13 对 13。
+
+**未验证分支**：错误条（连接失败才出现，需要断网/坏地址）与成功条（连接成功），
+本次只做了静态等价 + 编译校验。
+
 ### 2.19 状态条与登录闸门抽组件
 
 `ChatPage.build()` 剩下两块一起切，一次编译一次验。
