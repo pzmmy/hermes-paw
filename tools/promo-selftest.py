@@ -143,6 +143,26 @@ def main() -> int:
         chk(busy.exists() and "/approve" in busy.read_text(encoding="utf-8", errors="ignore"),
             "源码：/approve 解析存在")
 
+    # ── 7. 平台发布版 ──
+    zhp = ROOT / "docs/promo/zh-publish.md"
+    enp = ROOT / "docs/promo/en-publish.md"
+    if zhp.exists():
+        s2 = zhp.read_text(encoding="utf-8")
+        chk("配图位置" in s2, "zh-publish 含图片占位（平台需手动上传）")
+        rel_img = [m.group(1) for m in re.finditer(r"!\[[^\]]*\]\((\.\.?/[^)]+)\)", s2)]
+        chk(not rel_img, "zh-publish 无仓库相对图片路径（平台不读）", str(rel_img))
+        fences = re.findall(r"^```(\w*)$", s2, re.M)
+        chk(sum(1 for f in fences[0::2] if f == "") == 0, "zh-publish 代码块均带语言标记")
+    if enp.exists():
+        s3 = enp.read_text(encoding="utf-8")
+        chk(s3.startswith("---\n") and "title:" in s3, "en-publish 有 front matter")
+        chk("canonical_url: https://github.com/" in s3, "en-publish 有 canonical_url")
+        m = re.search(r"^tags:\s*(.+)$", s3, re.M)
+        t = [x.strip() for x in m.group(1).split(",")] if m else []
+        chk(0 < len(t) <= 4, f"en-publish tags ≤4（实际 {len(t)}）", str(t))
+        chk("raw.githubusercontent.com" in s3, "en-publish 图片用直链（dev.to 可直接渲染）")
+        chk("published: false" in s3, "en-publish 默认未发布（published: false）")
+
     print(f"\npromo-selftest: {'PASS' if not fail else 'FAIL'} ({len(ok)}/{len(ok)+len(fail)})")
     if fail:
         print("提示：外发平台（华为社区 / dev.to）不读仓库相对路径，发布时须手动上传对应 GIF。")
