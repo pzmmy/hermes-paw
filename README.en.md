@@ -11,6 +11,40 @@ HermesPaw is the mobile companion for a self-hosted [Hermes Agent](https://githu
 read agent progress from your phone, approve risky shell commands inside the approval window, and steer or
 stop a run with `/steer` and `/stop` — without opening a laptop.
 
+**Who it is for**: people who already run a Hermes gateway. When you step away from the computer but
+stay on the same LAN — another room at home, a meeting room, the sofa — the phone shows you what the
+run is doing, lets you approve or deny a dangerous command within 60 seconds, steer it with `/steer`,
+or stop it outright.
+
+It does **not** relay over the public internet and **not** through a third-party messenger: the phone
+talks to the gateway directly on the same subnet. In exchange you get the full interaction surface
+(run lifecycle, approval card, steering, session list and search) and no third party reading your
+conversation. The trade-off: outside that subnet it does not work.
+
+## 30-second tour
+
+![demo](docs/screenshots/demo-en.gif)
+
+## Three steps (phone and gateway on the same LAN)
+
+1. **Emit the pairing code** on the machine running Hermes (zero dependencies):
+
+   ```bash
+   python3 tools/hermes-paw-qr --name home
+   ```
+
+   It self-checks `/v1/models` first and refuses to print a code that cannot work — if you get a code,
+   the phone can connect.
+
+2. **Scan it**: App → Settings → *Scan to configure* (or *First-time setup*).
+
+3. **Use it**: back on the Chat tab the top bar should read `Connected: <your name>`. Send a message.
+
+> The pairing string carries a long-lived key: one person, one code — do not screenshot it or paste it
+> into a group chat; `--once` clears the terminal after printing.
+> Gateway-side details (profile, bind address, firewall, troubleshooting) live in
+> [`docs/server-setup.md`](docs/server-setup.md).
+
 ## Features
 
 - **Zero-config pairing** — the gateway side prints a QR code; the phone scans it and is ready. No typing URLs or tokens.
