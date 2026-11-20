@@ -29,6 +29,8 @@ import { LocalSession } from '../model/LocalSession';
 import { MergedSession } from '../viewmodel/SessionMerge';
 import { SessionPanel } from './chat/SessionPanel';
 import { ApprovalCard } from './chat/ApprovalCard';
+import { StatusBar } from './chat/StatusBar';
+import { LoginGate } from './chat/LoginGate';
 import { ServerProfile } from '../model/Profile';
 import { ApprovalControl } from '../model/Run';
 import { ToolStep } from '../model/ToolStep';
@@ -1228,21 +1230,15 @@ export struct ChatPage {
         // 能重跑整个 chat 分支。opacity(1) 是视觉空操作。
         .opacity(this.uiVersion >= 0 ? 1 : 1)
 
-        // A1/S6c: 等待期三态状态条（见 statusBarText）；空闲且无「刚收口」
-        // 提示时不占位。读 tick（@State）以便 3 秒窗口到期后重绘刷掉提示。
+        // A1/S6c: 等待期三态状态条已搬到 pages/chat/StatusBar.ets。
+        // 这里只判断要不要创建（读 tick @State，让收口提示的 3 秒窗口到期后
+        // 重绘刷掉），以及把父页算好的文字、忙碌位、动画点传进去。
         if (this.tick >= 0 && this.statusBarText() !== '') {
-          Row() {
-            if (this.v().busy) {
-              Text(this.runDots())
-                .fontSize(13)
-                .fontColor(accentPrimary())
-            }
-            Text(this.statusBarText())
-              .fontSize(12)
-              .fontColor($r('app.color.text_secondary'))
-          }
-          .width('100%')
-          .padding({ left: 12, right: 12, top: 6, bottom: 2 })
+          StatusBar({
+            text: this.statusBarText(),
+            busy: this.v().busy,
+            dots: this.runDots()
+          })
         }
 
         List({ scroller: this.scroller }) {
@@ -1803,50 +1799,16 @@ export struct ChatPage {
         fmtTime: (tsSec: number): string => this.sessionTime(tsSec)
       })
     }
-    // P2: 未登录闸门覆盖层（设计文档 §9）——opaque，authMode =
-    // 'loggedOut' 时盖住整个聊天数据面；登录成功后 profileVer 抬升 →
-    // 重连 → /me 通过 → authMode 翻转为 loggedIn → 本层隐去。
+    // P2: 未登录闸门覆盖层已搬到 pages/chat/LoginGate.ets。
+    // 判断仍在这里：vm 就绪且 authMode === 'loggedOut' 时才创建；登录成功后
+    // profileVer 抬升 → 重连 → /me 通过 → authMode 翻转 → 本组件不再被创建。
     if (this.vm !== null && this.v().authMode === 'loggedOut') {
-      Column() {
-        if (this.v().error !== '') {
-          Text(this.v().error)
-            .fontSize(13)
-            .fontColor($r('app.color.danger'))
-            .margin({ bottom: 16 })
-            .width('100%')
-            .textAlign(TextAlign.Center)
+      LoginGate({
+        errText: this.v().error,
+        onOpenLogin: (): void => {
+          this.gotoLogin();
         }
-        Text('🔒')
-          .fontSize(32)
-          .margin({ bottom: 12 })
-        Text($r('app.string.login_chat_gate_title'))
-          .fontSize(17)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.text_primary'))
-          .margin({ bottom: 8 })
-        Text($r('app.string.login_chat_gate_msg'))
-          .fontSize(13)
-          .fontColor($r('app.color.text_secondary'))
-          .textAlign(TextAlign.Center)
-          .margin({ bottom: 24 })
-        Button($r('app.string.login_chat_gate_btn'))
-          .fontSize(14)
-          .fontWeight(FontWeight.Bold)
-          .height(44)
-          .borderRadius(8)
-          .backgroundColor(accentPrimary())
-          .fontColor($r('app.color.text_inverse'))
-          .width('80%')
-          .onClick(() => {
-            this.gotoLogin();
-          })
-      }
-      .width('100%')
-      .height('100%')
-      .backgroundColor($r('app.color.bg_page'))
-      .justifyContent(FlexAlign.Center)
-      .alignItems(HorizontalAlign.Center)
-      .padding(32)
+      })
     }
     }
     .width('100%')

@@ -11,6 +11,9 @@
 - 真机验证记录见 `docs/impl-status.md` §2.17（语音模块 ASR 日志、面板开关/长按/取消）
 - 审批卡抽成 `pages/chat/ApprovalCard.ets`：`ChatPage` 74,807 → 72,692 B，
   `build()` 899 → 836 行；真机验证见 `docs/impl-status.md` §2.18（四按钮同行、拒绝后卡片消失）
+- 状态条与登录闸门抽成 `pages/chat/StatusBar.ets` / `pages/chat/LoginGate.ets`：
+  `ChatPage` 72,692 → 71,454 B，`build()` 836 → 796 行；状态条真机验到秒数与动画点同步刷新，
+  登录闸门仅静态等价校验（触发需退登录，`docs/impl-status.md` §2.19 写明口径）
 
 ## [0.1.1] — 2026-11-20
 
