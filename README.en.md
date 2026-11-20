@@ -125,4 +125,6 @@ dependencies; the only vendored code is BSD-3 `segno` used by the QR helper scri
 - Internal material that is **not** distributed with this repository: `docs/test-reports/` (device/emulator
   evidence, contains private addresses) and `evidence/` (captured logs and payload samples). Both are gitignored
   and kept locally only.
-- Design documents under `docs/` are implementation-level records; they evolve with the code.
+- Design documents under `docs/` are implementation-level records in Simplified Chinese; they evolve with the code.
+  Start from the English index: **[`docs/README.en.md`](docs/README.en.md)** — it says what each document
+  answers, who it is for, and whether it is still authoritative.
