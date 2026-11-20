@@ -26,21 +26,28 @@ help:
 	@echo "make export  # 生成开源导出包到 OUT=<dir>（默认 ./dist/opensource）"
 	@echo "make l2      # L2 门（需 API_SERVER_KEY，无 key 自动 SKIP）"
 
-# 全部静态自测：逐个跑 tools/*selftest*.py，任一失败即整体失败
+# 静态自测 + 网关自测：
+#   - 逐个跑 tools/*selftest*.py
+#   - 退出码 0   → PASS
+#   - 退出码 77  → SKIP（需网关 API_SERVER_KEY 的用例；与 run-l2.sh 同一约定，"未测"≠"失败"）
+#   - 其他非 0   → FAIL
 test:
-	@fail=0; \
+	@fail=0; skip=0; \
 	for t in tools/*selftest*.py; do \
 	  case "$$t" in *testdata*) continue;; esac; \
 	  name=$$(basename "$$t"); \
-	  if out=$$($(PYTHON) "$$t" 2>&1); then \
+	  out=$$($(PYTHON) "$$t" 2>&1); rc=$$?; \
+	  if [ $$rc -eq 0 ]; then \
 	    n=$$(printf '%s\n' "$$out" | grep -cE '^(PASS|OK)'); \
 	    echo "PASS  $$name  ($$n 条)"; \
+	  elif [ $$rc -eq 77 ]; then \
+	    echo "SKIP  $$name  (需网关 API_SERVER_KEY，本环境未测)"; skip=$$((skip+1)); \
 	  else \
-	    echo "FAIL  $$name"; printf '%s\n' "$$out" | grep -E '^FAIL' | head -5; fail=$$((fail+1)); \
+	    echo "FAIL  $$name  (rc=$$rc)"; printf '%s\n' "$$out" | grep -E '^FAIL' | head -5; fail=$$((fail+1)); \
 	  fi; \
 	done; \
 	echo "----"; \
-	echo "自测失败组数: $$fail"; \
+	echo "自测失败组数: $$fail（跳过 $$skip 组：需网关环境）"; \
 	[ "$$fail" -eq 0 ]
 
 lint:

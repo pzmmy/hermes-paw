@@ -26,6 +26,8 @@ make test
 
 逐个跑 `tools/*selftest*.py`，目前 17 组。这是提交前的最低要求，也是 CI 里跑的那一套。
 
+其中 `api-selftest.py` 与 `s2-selftest.py` 需要真实网关（`API_SERVER_KEY`）。拿不到 key 时它们按约定 **以退出码 77 退出 = SKIP**，`make test` 会显示 `SKIP` 并计入"跳过"组数，**不计为失败**（与 `make l2` 同一约定："未测"不等于"失败"）。所以 CI 上你会看到 2 组 SKIP，本地有网关时才会全量实跑。
+
 ```bash
 make lint    # arkts-lint：括号平衡、build() 内局部变量、重复声明、裸 hilog
 make scan    # 零凭据 / 零内网 IP 扫描（扫 git 跟踪的文件）
