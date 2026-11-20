@@ -64,6 +64,14 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+# 控制台编码兜底：LC_ALL=C / 纯 ASCII 环境下打印中文会抛 UnicodeEncodeError，
+# 让脚本在那类终端里直接崩掉。能 reconfig 就切 UTF-8，不支持就保持原样（失败可见）。
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+    except Exception:  # noqa: BLE001
+        pass
+
 HERMES_HOME = Path(os.environ.get("HERMES_HOME") or (Path.home() / ".hermes"))
 SCHEME = "hermespaw://setup/1"
 # 最低 App 版本（QR 载荷字段 min_app；App 解析时比对自身版本，低于 →「请升级 App 后重扫」）

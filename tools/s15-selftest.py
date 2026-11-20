@@ -100,6 +100,7 @@ def check_i18n() -> int:
     """文案双语：zh/en 两张表的 key 集合必须完全一致，且 --lang en 的可见输出零中文。
     只锁这两条，不锁具体措辞（措辞会改，缺 key/漏翻不会自己现形）。"""
     import importlib.util
+    import importlib.machinery  # 必须显式导入：只 import importlib.util 时 machinery 未必已加载（CI 实测 AttributeError）
     spec = importlib.util.spec_from_loader(
         "hpqr", importlib.machinery.SourceFileLoader("hpqr", str(QR)))
     mod = importlib.util.module_from_spec(spec)
