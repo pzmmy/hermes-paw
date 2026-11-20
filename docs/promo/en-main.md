@@ -1,17 +1,24 @@
-# I built a HarmonyOS client for my AI agent — and gave up on streaming output
+# I built a HarmonyOS client for Hermes Agent — and gave up on streaming output
 
 > Draft v1 (English) | for dev.to
 > Code: <https://github.com/pzmmy/hermes-paw> (MIT, pure ArkTS, zero third-party runtime dependencies)
 
 ---
 
-Last Wednesday, 9pm, I was downstairs picking up a parcel. My phone buzzed: the Hermes agent wanted to run `chmod -R 777`, and it was waiting for my confirmation.
+Xiao Ming runs IT at a mid-sized company. Halfway through a quarterly business review, his mind is elsewhere: at 8am he handed **Hermes Agent** a monthly reporting job.
 
-To approve it I had to walk back up to the study, open the laptop, and click a button. By the time I got there the approval had timed out and been denied by default. The task started over.
+It is a textbook agent workload — pull the numbers from the business database, reconcile them against the agreed definitions, then produce an Excel file and a slide deck. Two hours of a person's day, interrupted; about twenty minutes for the agent. It is also a job that *touches things*: it writes into a shared folder, overwrites last month's report, and runs a few scripts along the way.
 
-The problem was not "I have nowhere to chat with my agent" — WeCom and WeChat both do that fine. The problem was that I had **no remote control**: nothing that shows what the run is doing and lets me decide, right there, on the phone.
+At 10:10 his phone buzzes on the table: Hermes Agent wants to run `rm -rf reports/2026-09/` — clearing last quarter's archived reports so the two versions cannot be confused. Destructive, so it is waiting for a confirmation.
+
+There is no laptop in the meeting room. Walking back takes ten minutes; the approval window will not wait. Either he taps "approve once" on the phone — or he watches the run time out, get denied by default, and start over.
+
+The problem is not that he has nowhere to chat with Hermes — WeCom and WeChat both do that. The problem is that he has **no remote control**: nothing that shows what the run is doing and lets him decide, right there, on the phone.
 
 So I wrote HermesPaw: a native HarmonyOS NEXT client. Pure ArkTS, no third-party runtime dependencies, MIT licensed.
+
+Scenarios like this one are why I started building it.
+
 
 ## What it deliberately does not do
 
