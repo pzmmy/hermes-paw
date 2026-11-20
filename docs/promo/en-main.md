@@ -5,15 +5,19 @@
 
 ---
 
-Xiao Ming runs IT at a mid-sized company. Halfway through a quarterly business review, his mind is elsewhere: at 8am he handed **Hermes Agent** a monthly reporting job.
+Xiao Ming is a business director at a mid-sized company. Halfway through a quarterly business review, his mind is elsewhere: at 8am he handed **Hermes Agent** a monthly reporting job.
 
-It is a textbook agent workload — pull the numbers from the business database, reconcile them against the agreed definitions, then produce an Excel file and a slide deck. Two hours of a person's day, interrupted; about twenty minutes for the agent. It is also a job that *touches things*: it writes into a shared folder, overwrites last month's report, and runs a few scripts along the way.
+It is a textbook agent workload — pull the numbers from the business database, reconcile them against the agreed definitions, then produce an Excel file and a slide deck. Done by hand it is two interrupted days: waiting on numbers, chasing discrepancies, redoing formats. Handed to the agent, it is one morning. It is also a job that *touches things*: it writes into a shared folder, cleans up old versions, and runs a few scripts along the way.
 
-At 10:10 his phone buzzes on the table: Hermes Agent wants to run `rm -rf reports/2026-09/` — clearing last quarter's archived reports so the two versions cannot be confused. Destructive, so it is waiting for a confirmation.
+At 10:10 his phone buzzes on the table. Hermes Agent wants to clean up last quarter's archived reports.
+
+The card reads: `rm -rf reports/2026-09/`, reason: "avoid mixing the two reporting periods." Destructive — so it is waiting for a confirmation.
 
 There is no laptop in the meeting room. Walking back takes ten minutes; the approval window will not wait. Either he taps "approve once" on the phone — or he watches the run time out, get denied by default, and start over.
 
-The problem is not that he has nowhere to chat with Hermes — WeCom and WeChat both do that. The problem is that he has **no remote control**: nothing that shows what the run is doing and lets him decide, right there, on the phone.
+The problem is not that he has nowhere to chat with Hermes — WeCom and WeChat both do that, and WeCom even supports approval: it posts a four-choice prompt into the chat and you approve by replying `/approve`.
+
+But a business director is not going to memorise that command. He needs to know what popped up, where to tap, and how many seconds are left.
 
 So I wrote HermesPaw: a native HarmonyOS NEXT client. Pure ArkTS, no third-party runtime dependencies, MIT licensed.
 
@@ -37,7 +41,7 @@ It works, and it is genuinely convenient. But there are four ways it quietly goe
 1. **No global state.** In a chat window, an approval prompt gets buried by the next few messages. You may not even remember you are blocked on a pending decision.
 2. **The window is long.** 300 seconds is plenty of time for something else to happen — and for you to approve "on autopilot" without re-reading the command.
 3. **No ticking clock.** The deadline is printed, but it is static. Nothing gets more urgent as the seconds drain.
-4. **Typing on mobile.** `/approve` on a phone keyboard is slower than a tap, and it requires remembering the syntax.
+4. **Typing on mobile.** `/approve` on a phone keyboard is slower than a tap, and it requires remembering the syntax — a real barrier for the business roles who are often the ones asked to approve.
 
 So the two are **complementary, not competing**:
 
