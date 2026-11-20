@@ -48,7 +48,7 @@ test:
 	  elif [ $$rc -eq 77 ]; then \
 	    echo "SKIP  $$name  (需网关 API_SERVER_KEY，本环境未测)"; skip=$$((skip+1)); \
 	  else \
-	    echo "FAIL  $$name  (rc=$$rc)"; printf '%s\n' "$$out" | grep -E '^FAIL' | head -5; fail=$$((fail+1)); \
+	    echo "FAIL  $$name  (rc=$$rc)"; printf '%s\n' "$$out" | tail -25 | sed 's/^/      /'; fail=$$((fail+1)); \
 	  fi; \
 	done; \
 	echo "----"; \
