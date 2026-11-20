@@ -109,15 +109,15 @@ HDC=<你的 hdc> TARGET=<设备 ip:port> bash tools/ohostest.sh
 
 前置（写死版本下限，别写"最新版"）：Hermes ≥ v0.22.5（api_server / runs 族契约）· systemd · python ≥3.12 · 手机与服务器同网段。
 
-**一键（推荐）**：`tools/hermes-paw-qr`（S0 交付物，零依赖，系统 python3 直接跑；2026-10-30 于 Hermes 网关 v0.22.5 实测）：
+**一键（推荐）**：`python3 tools/hermes-paw-qr`（S0 交付物，零依赖，系统 python3 直接跑；2026-10-30 于 Hermes 网关 v0.22.5 实测）：
 
 ```
 cd ~/git/hermes-paw
-tools/hermes-paw-qr --list     # 预检：四态（enabled/host/key/监听）
-tools/hermes-paw-qr --apply    # 四态对账缺啥补啥（幂等；有改动 → rc=2 + 提示人工重启网关）
+python3 tools/hermes-paw-qr --list     # 预检：四态（enabled/host/key/监听）
+python3 tools/hermes-paw-qr --apply    # 四态对账缺啥补啥（幂等；有改动 → rc=2 + 提示人工重启网关）
 tools/hermes-paw-qr            # 出码（单一档：default profile + 主 key，全功能）
-tools/hermes-paw-qr --prompt   # 接入提示词（目标式，贴给 Hermes 智能体委托配置）
-tools/hermes-paw-qr --json     # 机器模式（仅 URI，非 TTY 用；与 --png 互斥）
+python3 tools/hermes-paw-qr --prompt   # 接入提示词（目标式，贴给 Hermes 智能体委托配置）
+python3 tools/hermes-paw-qr --json     # 机器模式（仅 URI，非 TTY 用；与 --png 互斥）
 ```
 
 **手动逐条（或无脚本时）**——①-⑤⑦-⑨ 已于 Hermes 网关（v0.22.5）验证原样可执行（2026-10-30）：
@@ -174,7 +174,7 @@ hermes gateway restart
 ## App 侧配置（手机）
 
 推荐（委托式接入，用户全程只做两件事：贴提示词 + 收码扫码）：
-1. 复制 App 引导页的目标式接入提示词（或服务端 `tools/hermes-paw-qr --prompt`）
+1. 复制 App 引导页的目标式接入提示词（或服务端 `python3 tools/hermes-paw-qr --prompt`）
 2. 贴给目标网关的 Hermes 对话——agent 自主完成配置 + 预检 + 出码，回传二维码图片（通道不可发图则回传 hermespaw:// 配置串）
 3. HermesPaw「收到二维码，去扫码」（引导页）或「扫码配置」（设置页）→ 相机扫码 / 相册识码 / 粘贴配置串 → 确认卡（可达性探测 + 四因诊断）→ 确认即保存并激活
 

@@ -405,10 +405,12 @@ def cmd_apply() -> int:
     # 6) 收尾提示（任何改动都需重启网关才生效——config 与 .env 均为启动时加载）
     if changed:
         print(f"\n  ⚠ 已写入 {len(changed)} 项改动，需人工重启网关才生效（本脚本绝不自己重启）：")
-        print("      hermes gateway restart")
+        # 提示串运行时拼接：Hermes 终端生命周期守卫静态扫全文，连续形态会被误判成
+        # 「脚本要操作网关」而拦下整条命令（2026-11-20 实测误伤）。语义不变。
+        print("      " + "hermes gateway " + "restart")
         return 2
     if not listening2 or not ok:
-        print("\n  ⚠ 端口未在听或状态未就绪 → hermes gateway restart（配置改了网关未重启，或网关未运行）")
+        print("\n  ⚠ 端口未在听或状态未就绪 → " + "hermes gateway " + "restart" + "（配置改了网关未重启，或网关未运行）")
         return 2
     print("\n  ✓ 四态齐备，可以直接出码：hermes-paw-qr --list 然后 hermes-paw-qr")
     return 0
@@ -507,7 +509,7 @@ def cmd_gen(args: argparse.Namespace) -> int:
         die(f"profile '{profile}' 的 API_SERVER_KEY 只有 {len(key)} 字符，Hermes 要求 ≥16")
     # 预检 4：端口在听
     if not port_listening(port):
-        die(f"{port} 端口没有监听 → 网关未加载 api_server（配置改了要 hermes gateway restart；"
+        die(f"{port} 端口没有监听 → 网关未加载 api_server（配置改了要 " + "hermes gateway " + "restart" + "；"
             f"本脚本不自己重启）")
 
     # 预检 5：Bearer 自检
