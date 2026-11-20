@@ -2,23 +2,42 @@
 
 格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [未发布]
+## [0.1.3] — 2026-11-20
+
+这一版是「把结构拆干净、把验证做成命令、把文档对齐实现」。没有新的用户可见功能。
 
 ### 重构
 
-- 输入区三条无状态带抽组件：`pages/chat/AttachmentStrip.ets`（1,505 B / 30 行）、
-  `BubbleMenu.ets`（3,973 B / 74 行）、`QuoteStrip.ets`（1,354 B / 24 行）
-- `ChatPage.ets` 69,170 → 65,588 B，`build()` 719 → 625 行（0.1.0 时是 1001 行）
-- 真机验证见 `docs/impl-status.md` §2.21（操作栏五钮条件正确、引用条点击清除、附件条 2→1）
-- `tools/s2b-selftest.py`：气泡栏/引用条的断言从「必须在 ChatPage.ets 内」改为
+- 输入区三条无状态带抽组件：`pages/chat/AttachmentStrip.ets`（1,505 B）、
+  `BubbleMenu.ets`（3,973 B）、`QuoteStrip.ets`（1,354 B）；`ChatPage.ets` 69,170 → 65,588 B，
+  `build()` 719 → 625 行（0.1.0 时是 1,001 行）
+- 轮询机制抽成 `viewmodel/PollScheduler.ets`（3,751 B）：ticker、在飞守卫、run 身份、拍距、
+  秒表归它；`ChatVM` 只留放弃判据 / 快照归并 / 收口语义。`ChatVM.ets` 90,781 → 89,200 B
+  （阈值 102,400 B，余量 13.2 KB）
+
+### 测试与门禁
+
+- `tools/poll-scheduler-selftest.py`（进 `make test`）：静态防回归（`ChatVM` 不许再出现
+  ticker 字段）+ 假时钟状态机镜像 16 条断言
+- `tools/poll-verify.sh` / `make poll-verify`：真机抓 28 秒 hilog，断言 2s → 4s → 5s 自适应曲线
+- `tools/s2b-selftest.py`：气泡栏/引用条断言从「必须在 ChatPage.ets 内」改为
   「组件持按键 + 页面持接线」，对 `pages/chat/*.ets` 联合扫描
-- 轮询机制抽成 `viewmodel/PollScheduler.ets`（3,751 B）：ticker 生命周期、在飞守卫、
-  run 身份、拍距、1 秒秒表归它；`ChatVM` 只留放弃判据、快照归并、收口语义
-- `ChatVM.ets` 90,781 → 89,200 B（删 6 个字段 + `armBaselineTicker()`）
-- 真机验到完整自适应曲线：2s×3 → 4s×3 → 5s 封顶，且停止/收口/秒表均正常（`docs/impl-status.md` §2.22）
-- 轮询验证固化成两条命令：`tools/poll-scheduler-selftest.py`（进 `make test`，静态 + 假时钟状态机
-  镜像 16 条断言）、`tools/poll-verify.sh` / `make poll-verify`（真机抓 hilog 断言自适应曲线）
-- `CONTRIBUTING.md` 补「改到轮询/取数链路时要跑什么」
+- `tools/promo-selftest.py`：三语键数断言由「等于 345」改为「等量且 ≥345」
+
+### 文档
+
+- 设计文档升到 **v1.7 对齐稿**：§R3 补 active 八态表与放弃判据执行顺序；§R8 由「目标结构」
+  改写为「实际结构 + 四处偏离 + 行数目标未达成的理由」
+- `docs/impl-status.md` §6 待办重写：旧版六项里四项其实已完成，逐条标注现状
+- `docs/impl-status.md` §2.24：未验证清单收口（网关 409 已实测；错误条渲染已验证；
+  成功条未捕获；登录闸门不可验证；面板搜索不适合自动化）
+
+### 验证
+
+- 真机（Mate 80 RS / API 26）：轮询自适应曲线（拍点 2052/4031/6045/10071/14077/18088/23115/28121 ms）、
+  终态收口、秒表、用户停止、气泡操作栏五钮、引用条、附件条 2→1、审批卡四钮、
+  网关 409「该会话有任务在跑」
+- 门禁：`arkts-lint` 51 文件 0 findings、`make test` 18 组 0 失败、`secret-scan` CLEAN
 
 ## [0.1.2] — 2026-11-20
 

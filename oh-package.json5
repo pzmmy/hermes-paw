@@ -1,7 +1,7 @@
 {
   "modelVersion": "6.0.0",
   "name": "hermes-paw",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "HermesPaw: HarmonyOS NEXT native client for the Hermes Agent gateway (pure ArkTS, zero third-party runtime deps)",
   "main": "",
   "author": "pzmmy",

@@ -1,9 +1,10 @@
-# HermesPaw 重构设计（v1.6 送审稿）
+# HermesPaw 重构设计（v1.7 对齐稿）
 
-> 状态：**设计稿，未编码**。本文只回答"改哪里、为什么改、改到什么程度算完"，不含实现代码。
-> 送审通道：170 审爷（签发前不动代码）。
+> 状态：**已实施，v1.7 按实现对齐**。本文回答"改哪里、为什么改、改到什么程度算完"。
+> v1.7 的改动只有两类：把实施中被推翻/替换的结构写成实际做法，把代码里已有但文档缺的表补上；设计意图与判据未变。
 >
 > 修订记录：
+> - v1.7（2026-11-20）：**按实现对齐，不改判据**——① §R3 补 active 八态表与放弃判据执行顺序（原缺，代码在 `RunPolicy.isKnownActiveStatus`）；② §R8 由"目标结构"改写为"实际结构 + 四处偏离 + 行数目标未达成的理由"（恢复子系统 S3b 整块删除、RunTracker 落为纯函数 RunPolicy、审批 hub 未单列）；③ 状态行由"设计稿未编码"改为"已实施"。
 > - v1.6（2026-11-18）：**按 R3 判定补掉 4 条"半改"**——① §0 结论第 2 条删掉 2.5s 内容口径，改为"1.5s 可见进展 + 快照 ≤5s P50"；② §R1 表 #2 改为"握手 3s / 判死 15s 无字节 / 绝对 30min"三者分离，禁止混用；③ §R1 表 #4 明确"心跳不续命"只适用 typed-idle，本设计用字节级判死、心跳**计入**有效字节；④ §R1 表 #3 删除重连预算副本，只留指针；⑤ §R3 终态集合补 `canceled` 并与 `Run.ets:38` 对齐；⑥ §R11 深色 accent 为浅底，`text_on_accent` 深色改深墨 `#0F1216`（原缺，白字必 <4.5）。
 > - v1.5（2026-11-18）：**按审爷 R2 的"不通过"6 条必改项逐条闭环**——① §R0 新增单次 `getRun` 硬上限 3s + 在飞跳过 + ticker 自检，S1 前置改为"跨机 getRun 实测通过"；② SSE 可用性改为"拿到响应 + 至少 1 帧（含注释/心跳）"，不再与首字绑定，另设 15s 无字节判死；③ 验收拆成"UI 可见 ≤1.5s"与"首个非空快照 ≤5s/≤10s"两条，删除 2.5s 内容口径；④ 重连预算归一到 §R0-2，§R3 只引用；⑤ 清除 90s 残留（§1.4/§R0 问题段）、R2 终态补 `canceled`；⑥ §R10 的 #7/#8 并入 §R7 单一定义、#9 降级 P1 并先做能力探针、#10 标数据源待核，GPL 守卫口径限定为"降低风险"。
 > - v1.4（2026-11-18）：新增 **§R12 性能 / §R13 安全 / §R14 健壮性**——全部先实测再落方案：`LazyForEach` 0 处（10 处 `ForEach` 全量渲染）、`Markdown.ets:10` 自陈每次渲染全文重解析、`onUnhandledException` 0 命中（无全局异常钩子）、`RunsApi.ets:43` 自陈"`readTimeout` 对半开连接不生效"、`module.json5` 无 cleartext 声明、`TokenVault` 的 HUKS/TEE 已达标（明确不动）；配套新增 S4b/S10/S11 与 4 条开源门槛。
@@ -281,6 +282,23 @@ degraded_polling ─┬─status 终态→ terminal(...)
 | 应用进后台 | 停轮询；回前台立刻补一次并续上节奏 |
 | 绝对上限（30min）触发 | **不判 failed**：落"已中断·任务仍在服务端"，给"重开取回"入口；文案不得出现"失败" |
 
+**active 状态集（v1.7 补全，与 `RunPolicy.isKnownActiveStatus()` 一一对应）**
+
+| 状态 | 来源 | 含义 |
+|---|---|---|
+| `pending` | 客户端初始 | 已建、未入队 |
+| `queued` | 网关 `_set_run_status("queued")` | 新 run 初始态 |
+| `claimed` | 网关中间态 | 已被工作进程认领 |
+| `scheduled` | 网关 | 排期 |
+| `running` | 网关 | 执行中 |
+| `waiting_for_approval` | 网关 | 审批窗口内 |
+| `stopping` | 网关 `_stopping_run_ids` | 用户 stop 后、终态前的过渡态 |
+| `finalizing` | 网关 | 收尾写结果 |
+
+判定顺序固定为 **终态 → active → unknown**。白名单漏掉一个仍在跑的状态，会让 run 在连续 3 拍（起始 2s 一拍 ≈ 6s）被判成 `protocol-error` 并收口——网关新增状态时必须同步本表、`RunStatus` 枚举与 `isKnownActiveStatus()`。
+
+**放弃判据的执行顺序**（`decideGiveUp()`，顺序即优先级）：① 连续 3 次 getRun 失败 → `connection-lost`；② 连续 3 次未知状态 → `protocol-error`（status 原样作诊断码）；③ 超过 30min 绝对上限 → `abandoned-remote`，落"已中断 · 任务仍在服务端"并给"重开取回"入口，**不判 failed**。
+
 关键点：**只要服务端还说"在跑"，就一直等；一旦服务端说"不在跑"或查询连续失败，立刻收口。** 这同时解决"掐长任务"与"白等死 run"。
 
 保留：用户可配的 `recover_poll_interval_ms` 作为节奏表的上限覆盖（用户设了 30s 就尊重 30s），避免破坏已有设置。
@@ -339,30 +357,40 @@ UI 只消费结构，文案在 i18n 层。**铁律：气泡已有内容时，错
 
 **验收**：14 类错误码各一条渲染断言，重点验"有产出时错误不吞内容"。
 
-### R8 拆分（结构目标）
+### R8 拆分（原目标 → v1.7 按实现对齐）
+
+**v1.6 的原目标**：恢复子系统搬进 `stream/StreamRunner.ets`、状态机搬进 `stream/RunTracker.ets`、审批对账搬进 `approval/ApprovalHub.ets`、`ChatPage` ≤300 行。
+
+**实际结构**（2026-11-20 实测）：
 
 ```
 viewmodel/
-  ChatVM.ets            编排：只做"用户意图 → 调用哪条链路"，目标 ≤600 行
-  stream/StreamRunner.ets  建流/订阅/重连/守卫（R1/R3）
-  stream/RunTracker.ets    状态机（R2）
-  approval/ApprovalHub.ets 审批对账（R5）
+  ChatVM.ets                编排：意图 → 走哪条链路（2,186 行 / 89,200 B，阈值 102,400 B）
+  PollScheduler.ets         基线轮询机制（ticker / 在飞守卫 / run 身份 / 拍距 / 秒表）
+  VoiceInput.ets            语音（ASR 生命周期）
+  SessionMerge.ets          会话合并（纯函数）
+  session/SessionStore.ets  会话域（列表 / 删除 / 标题）
+  stream/PollPolicy.ets     拍距策略（纯函数）
+  stream/RunPolicy.ets      状态判定 + 放弃策略（纯函数）
 net/
-  ApiClient.ets         HTTP 原语
-  SseParser.ets         分帧（保持 feed(ArrayBuffer) 契约）
-  RunsApi.ets           REST 封装（补齐 resolve-unknown / stop / steer）
-  ErrorModel.ets        R7 分类器
+  ApiClient / RunsApi / SessionsApi / AuthApi / JobsApi / SlashCommands / SseParser / ErrorText
 model/
-  Run.ets               快照 DTO（补 error / turn_exit_reason / pending_controls）
-  ThinkingSplitter.ets  think 标签切割（借 iHermes 语义，MIT 可用）
-  OutputText.ets        extractOutputText（R4）
-components/
-  MessageList / Bubble / Composer / ToolSteps / ApprovalCard / StatusBar
-i18n/
-  Translations.ets      扁平 key + 语言解析（device/zh/en）
+  Run / ChatMessage / LocalSession / Markdown / Multimodal / Profile / SetupUri / ToolStep
+pages/chat/
+  SessionPanel / ApprovalCard / StatusBar / LoginGate / ChatNotice /
+  AttachmentStrip / BubbleMenu / QuoteStrip
 ```
 
-`ChatPage` 目标 ≤300 行：只做布局，不含业务判定。
+**与原目标的四处偏离（v1.7 已定案）**
+
+| 原计划 | 实际 | 原因 |
+|---|---|---|
+| `stream/StreamRunner.ets`（建流/订阅/重连/守卫） | **不建**；恢复子系统 S3b **整块删除** | S1 之后 `startRecovery()` 首行即被基线轮询挡住，整段不可达。用户拍板 B 方案（删除而非搬迁）。传输主从也已反转：getRun 轮询是唯一取数通道、SSE 仅增强，不存在独立的"流运行器"可搬 |
+| `stream/RunTracker.ets`（状态机） | 落为 `stream/RunPolicy.ets` 的**纯函数** | 判定顺序与放弃判据都是纯函数，搬成有状态类反而要注入依赖 |
+| `approval/ApprovalHub.ets` | 审批对账留在 `ChatVM`，卡片是 `pages/chat/ApprovalCard.ets` | 对账只有"读快照 → 比对 → 收口"三步，且与 run 收口强耦合；单列会切出跨模块回调 |
+| `ChatPage` ≤300 行 | **1,674 行**（`build()` 625 行，从 1,001 降下来） | 未达成，且判定不再追 |
+
+**为什么不再压 `ChatPage`**：拆出 8 个组件后，剩下的大块只有两处——消息列表（248 行：4 个渲染分支 + 骨架屏 + 流式占位）与统一输入行（121 行：含 `TextInput` 双向绑定）。前者一动就要逐条真机回归气泡 / Markdown / 图片 / 长按；后者一动就涉光标位置与 `@Prop` 回写时序。继续拆的收益只是行数，风险是真实回归。
 
 ### R9 过程数据按消息归档
 
