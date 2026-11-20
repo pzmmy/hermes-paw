@@ -28,9 +28,9 @@
 //     server no longer replays, finalize from the run snapshot
 // =====================================================================
 import { Msg } from '../utils/Msg';
+import { VoiceInput } from './VoiceInput';
 import { http } from '@kit.NetworkKit';
-import { common, abilityAccessCtrl } from '@kit.AbilityKit';
-import { speechRecognizer } from '@kit.CoreSpeechKit';
+import { common } from '@kit.AbilityKit';
 import { BusinessError, pasteboard } from '@kit.BasicServicesKit';
 import { LogSafe } from '../utils/LogSafe';
 import { ApiClient, ApiError } from '../net/ApiClient';
@@ -82,13 +82,6 @@ const VAULT_MAX_ATTEMPTS: number = 3;
 
 function boolFrom(v: Object | null | undefined): boolean {
   return v === true;
-}
-
-/** P3-03 修：ASR 录音超长/超时的错误码集合。HarmonyOS on-device ASR 对
- *  超长录音返回 1002200003（及同族的时长/超时类错误）。命中则提示"录音过长"，
- *  而非笼统的"识别失败"（易被误读成网络/Token 问题）。 */
-function isVoiceTooLongCode(code: number): boolean {
-  return code === 1002200003 || code === 1002200001 || code === 1002200002;
 }
 
 /**
@@ -162,13 +155,15 @@ export class ChatVM {
    *  above the input bar; cleared on session switch and after the run
    *  is accepted (202). */
   pendingImages: string[] = [];
-  /** S2-c: voice input state: 'idle' | 'listening' (D5: while listening
-   *  the input row swaps the attach/mic buttons for the live text +
-   *  adopt/discard buttons). */
-  voiceState: string = 'idle';
-  /** S2-c: live recognition text (settled clauses + current partial),
-   *  shown in the input row while listening. */
-  voicePartial: string = '';
+  /** S2-c: 语音状态与实时文本改由 VoiceInput 持有；这里保留同名只读投影，
+   *  让 ChatPage 的既有绑定（v.voiceState / v.voicePartial）零改动。 */
+  get voiceState(): string {
+    return this.voice().state;
+  }
+
+  get voicePartial(): string {
+    return this.voice().partial();
+  }
   error: string = '';
   notice: string = '';
   /** A1: epoch-ms when the current run started (0 = no active run);
@@ -254,22 +249,23 @@ export class ChatVM {
   /** S3-b 残留守卫位：原 recovery 子系统已删除，取数由基线轮询独占，此值恒 0。
    *  保留仅为 onStreamError 里「旧流误报不打断取数」的守卫语义（不新增路径）。 */
   private streamPolls: number = 0;
-  /** S2-c: on-device ASR engine (CoreSpeechKit). D2: a fresh engine per
-   *  listening round (create + shutdown), never shared across rounds. */
-  private asrEngine: speechRecognizer.SpeechRecognitionEngine | null = null;
-  /** S2-c: sessionId of the current round (finish/cancel target). */
-  private voiceSessionId: string = '';
-  /** S2-c: settled (isFinal) clauses accumulated this round. */
-  private voiceAccum: string = '';
-  /** S2-c: the user tapped discard (✕) — the round's text is dropped. */
-  private voiceDiscarded: boolean = false;
-  /** S2-c: the round already ended (onComplete/onError) — one-shot guard
-   *  for the finalize + shutdown pair. */
-  private voiceEnded: boolean = false;
-  /** S2-c: page callback receiving the final text (D3: fills the input
-   *  field; the user confirms the send). */
-  private voiceOnFinal: (text: string) => void = (text: string): void => {
-  };
+  /** S2-c: 语音识别整块已外移到 viewmodel/VoiceInput.ets（8 字段 + 7 方法），
+   *  这里只留一个懒初始化句柄；回吐口把 notice / error 写回本 VM。 */
+  private voiceRef: VoiceInput | null = null;
+
+  private voice(): VoiceInput {
+    if (this.voiceRef === null) {
+      this.voiceRef = new VoiceInput({
+        onNotice: (m: string): void => {
+          this.notice = m;
+        },
+        onError: (m: string): void => {
+          this.error = m;
+        }
+      });
+    }
+    return this.voiceRef;
+  }
 
   // ---- §R0 基线轮询（getRun 为基线，SSE 只做增强）----
   /** 基线轮询 ticker 句柄（setInterval；-1 = 未运行）。单一 ticker 驱动，
@@ -1271,208 +1267,26 @@ export class ChatVM {
     this.notifyUi();
   }
 
-  // ================= S2-c: voice input (on-device ASR) =================
-  //
-  // Zero-dependency route (plan §4.1): the gateway API surface accepts
-  // image parts only (capabilities audio_api:false; session_api_media is
-  // image_url-only), so speech is recognized ON-DEVICE via CoreSpeechKit
-  // speechRecognizer. Official V13 constraints: zh-CN only, offline model
-  // only (online:1, no network), recognitionMode 0 = the engine captures
-  // the mic itself (no AVRecorder/PCM buffer). VAD auto-terminates the
-  // round (10s leading silence / 0.8s trailing / 30s cap, D4). D2: one
-  // engine per round. D3: final text fills the input field; the user
-  // confirms the send. Engine methods are sync (void); async failures
-  // surface via the listener's onError.
-  //
-  // Engine lifecycle (D2): createEngine -> setListener -> startListening
-  // -> (onComplete | onError | finish | cancel) -> shutdown. The one-shot
-  // voiceEnded guard keeps the finalize+shutdown pair idempotent even if
-  // both onComplete and a late onError arrive.
+  // ================= S2-c: voice input =================
+  // 端侧 ASR 的完整生命周期（engine/res/状态机/VAD 参数/幂等守卫）已整块搬到
+  // viewmodel/VoiceInput.ets；此处只保留 ChatPage 依赖的三个薄壳 + 两个只读投影。
 
-  /** S2-c: request MICROPHONE (user_grant) and start one ASR round. */
+  /** S2-c: 请求麦克风并开始一轮 ASR。实现见 viewmodel/VoiceInput.ets。 */
   async startVoice(onFinalText: (text: string) => void): Promise<void> {
-    if (this.busy || this.voiceState !== 'idle') {
+    if (this.busy || !this.voice().isIdle()) {
       return;
     }
-    this.voiceOnFinal = onFinalText;
-    // ohos.permission.MICROPHONE is user_grant: ask at runtime before
-    // the engine starts listening (declared in module.json5).
-    let atMgr: abilityAccessCtrl.AtManager = abilityAccessCtrl.createAtManager();
-    // PermissionRequestResult is not exported by name in this SDK;
-    // infer the result type (same pattern as ScanVM.startScan).
-    let grant = await atMgr.requestPermissionsFromUser(this.ctx, ['ohos.permission.MICROPHONE']);
-    if (grant.authResults.length === 0 || grant.authResults[0] !== 0) {
-      this.error = Msg.t('m_vm_mic_perm');
-      return;
-    }
-    let engine: speechRecognizer.SpeechRecognitionEngine | null = null;
-    try {
-      // online:1 = offline mode (only mode supported, no network).
-      let extraParams: Record<string, Object> = { 'locate': 'CN', 'recognizerMode': 'short' };
-      let params: speechRecognizer.CreateEngineParams = {
-        language: 'zh-CN',
-        online: 1,
-        extraParams: extraParams
-      };
-      engine = await speechRecognizer.createEngine(params);
-      this.asrEngine = engine;
-      this.voiceAccum = '';
-      this.voiceDiscarded = false;
-      this.voiceEnded = false;
-      this.voicePartial = '';
-      this.voiceState = 'listening';
-      let listener: speechRecognizer.RecognitionListener = {
-        onStart: (sessionId: string, eventMessage: string): void => {
-          LogSafe.i(TAG, 'ASR start session=%{public}s', sessionId);
-        },
-        onEvent: (sessionId: string, eventCode: number, eventMessage: string): void => {
-          LogSafe.d(TAG, 'ASR event code=%{public}d', eventCode);
-        },
-        onResult: (sessionId: string, result: speechRecognizer.SpeechRecognitionResult): void => {
-          // Per-clause results: isFinal = clause settled; isLast marks
-          // the final clause of the round.
-          if (result.isFinal) {
-            this.voiceAccum += result.result;
-          }
-          this.voicePartial = this.voiceAccum + result.result;
-        },
-        onComplete: (sessionId: string, eventMessage: string): void => {
-          this.onVoiceEnd();
-        },
-        onError: (sessionId: string, errorCode: number, errorMessage: string): void => {
-          this.onVoiceError(errorCode, errorMessage);
-        }
-      };
-      engine.setListener(listener);
-      this.voiceSessionId = 'voice-' + Date.now().toString(36) +
-        Math.floor(Math.random() * 1000000).toString(36);
-      // recognitionMode:0 = the engine captures the mic itself (needs
-      // ohos.permission.MICROPHONE); VAD auto-terminates (0.8s trailing
-      // silence / 10s leading silence / 30s hard cap, D4).
-      let startExtra: Record<string, Object> = {
-        'recognitionMode': 0,
-        'vadBegin': 10000,
-        'vadEnd': 800,
-        'maxAudioDuration': 30000
-      };
-      let startParams: speechRecognizer.StartParams = {
-        sessionId: this.voiceSessionId,
-        audioInfo: { audioType: 'pcm', sampleRate: 16000, sampleBit: 16, soundChannel: 1 },
-        extraParams: startExtra
-      };
-      // Sync call: a startup failure surfaces via the listener's onError
-      // (e.g. 1002200002), not a returned promise.
-      engine.startListening(startParams);
-      LogSafe.i(TAG, 'ASR listening started');
-    } catch (err) {
-      let e: Error = err as Error;
-      LogSafe.w(TAG, 'startVoice failed: %{public}s', e.message);
-      this.error = Msg.t('m_vm_voice_start_fail') + e.message;
-      this.voiceState = 'idle';
-      this.voicePartial = '';
-      if (engine !== null) {
-        this.asrEngine = null;
-        this.releaseEngine(engine);
-      }
-    }
+    await this.voice().start(this.ctx, onFinalText);
   }
 
-  /** S2-c: adopt the round (⏹): the engine finalizes; the settled text
-   *  arrives via onComplete -> onVoiceEnd. */
+  /** S2-c: 采纳本轮（⏹）。 */
   finishVoice(): void {
-    let engine: speechRecognizer.SpeechRecognitionEngine | null = this.asrEngine;
-    if (this.voiceState !== 'listening' || engine === null) {
-      return;
-    }
-    try {
-      engine.finish(this.voiceSessionId);
-    } catch (err) {
-      let e: Error = err as Error;
-      LogSafe.w(TAG, 'ASR finish failed: %{public}s', e.message);
-      this.onVoiceError(-1, e.message);
-    }
+    this.voice().finish();
   }
 
-  /** S2-c: discard the round (✕): cancel the engine; the settled text
-   *  is dropped (voiceDiscarded guards the delivery). */
+  /** S2-c: 丢弃本轮（✕）。 */
   cancelVoice(): void {
-    let engine: speechRecognizer.SpeechRecognitionEngine | null = this.asrEngine;
-    if (this.voiceState !== 'listening' || engine === null) {
-      return;
-    }
-    this.voiceDiscarded = true;
-    try {
-      engine.cancel(this.voiceSessionId);
-    } catch (err) {
-      let e: Error = err as Error;
-      LogSafe.w(TAG, 'ASR cancel failed: %{public}s', e.message);
-      // Still reset: the round is over and the text is discarded.
-      this.onVoiceEnd();
-    }
-  }
-
-  /** S2-c: one-shot round end (onComplete / error / 30s cap): deliver
-   *  the settled text (unless discarded), reset the state, release the
-   *  engine (D2 per-round lifecycle). */
-  private onVoiceEnd(): void {
-    if (this.voiceEnded) {
-      return;
-    }
-    this.voiceEnded = true;
-    if (!this.voiceDiscarded) {
-      let text: string = this.voiceAccum.trim();
-      if (text !== '') {
-        this.notice = Msg.t('m_vm_voice_done');
-        this.voiceOnFinal(text);
-      } else {
-        this.notice = Msg.t('m_vm_voice_empty');
-      }
-    }
-    this.voiceState = 'idle';
-    this.voicePartial = '';
-    this.shutdownAsr();
-  }
-
-  /** S2-c: listener error (1002200002 start / 1002200004 finish /
-   *  1002200005 cancel / 1002200006 busy / ...) or a sync throw
-   *  (code -1). */
-  private onVoiceError(code: number, msg: string): void {
-    if (this.voiceEnded) {
-      return;
-    }
-    this.voiceEnded = true;
-    if (!this.voiceDiscarded) {
-      // P3-03 修：按错误码分流。录音超长（1002200003 等 ASR 过长/超时类）给精准提示，
-      // 避免误导成"网络/Token 问题"；其余保留通用文案 + 原始 message。
-      if (isVoiceTooLongCode(code)) {
-        this.error = Msg.t('m_vm_voice_too_long');
-      } else {
-        this.error = Msg.t('m_vm_voice_fail_prefix') + String(code) + '）：' + msg;
-      }
-    }
-    this.voiceState = 'idle';
-    this.voicePartial = '';
-    this.shutdownAsr();
-  }
-
-  /** S2-c: release the round's engine (idempotent). */
-  private shutdownAsr(): void {
-    let engine: speechRecognizer.SpeechRecognitionEngine | null = this.asrEngine;
-    this.asrEngine = null;
-    if (engine !== null) {
-      this.releaseEngine(engine);
-    }
-  }
-
-  /** S2-c: shutdown is a sync call; never let it throw out of a
-   *  listener or catch path. */
-  private releaseEngine(engine: speechRecognizer.SpeechRecognitionEngine): void {
-    try {
-      engine.shutdown();
-    } catch (err) {
-      let e: Error = err as Error;
-      LogSafe.w(TAG, 'ASR shutdown failed: %{public}s', e.message);
-    }
+    this.voice().cancel();
   }
 
   private onChunk(chunk: ArrayBuffer): void {

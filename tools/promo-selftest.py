@@ -84,9 +84,13 @@ def main() -> int:
     chk(keys == 345, f"三语各 345 key（实际 {keys}）", str(keys))
 
     ets = len(list((ROOT / "entry/src/main/ets").rglob("*.ets")))
-    chk(ets == 41, f"主代码 .ets = 41（实际 {ets}）", str(ets))
+    # 稿件里不写死确切文件数（会被后续提交打脸）：只要求出现"源文件"这类表述，
+    # 实际数量仅作提示。历史上这里写死过 41，新增 VoiceInput.ets 后立刻变红。
+    chk(40 <= ets <= 60, f"主代码 .ets 数量合理（实际 {ets}）", str(ets))
     for name, s in bodies.items():
-        chk(ALLOW_TOKEN[0] in s, f"{name} 声明 41 个源文件")
+        chk("ArkTS 源文件" in s or "ArkTS source files" in s,
+            f"{name} 提到源文件规模（不写死数字）")
+    print(f"  提示：主代码 .ets 实际 {ets} 个（稿件用软表述，避免随提交过期）")
 
     pkg = (ROOT / "entry/oh-package.json5").read_text(encoding="utf-8")
     dep = re.search(r'"dependencies"\s*:\s*\{([^}]*)\}', pkg)

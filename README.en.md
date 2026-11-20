@@ -163,5 +163,6 @@ dependencies; the only vendored code is BSD-3 `segno` used by the QR helper scri
 - Design documents under `docs/` are implementation-level records in Simplified Chinese; they evolve with the code.
   Start from the English index: **[`docs/README.en.md`](docs/README.en.md)** — it says what each document
   answers, who it is for, and whether it is still authoritative (Simplified Chinese index: [`docs/README.md`](docs/README.md)).
+- Changelog: [`CHANGELOG.md`](CHANGELOG.md).
 - Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md) (how to run the three checks, and why CI does not build the HAP).
 - Security: report privately via [`SECURITY.md`](SECURITY.md).

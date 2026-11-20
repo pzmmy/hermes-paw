@@ -132,7 +132,7 @@ The worst part was the bulk replacement. I used a regex, and the regex treated q
 
 ## Anyway
 
-The app is small. 41 ArkTS source files plus 4 device-test files, zero third-party runtime dependencies, a single HAP.
+The app is small. Around forty ArkTS source files plus 4 device-test files, zero third-party runtime dependencies, a single HAP.
 
 It's also imperfect. LAN only, no push, no streaming.
 
