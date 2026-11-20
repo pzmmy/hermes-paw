@@ -56,7 +56,7 @@ I wrote the full ten-row comparison — install, network, push, approval, stop, 
 
 When a dangerous command triggers approval, the app shows a card:
 
-```
+```text
 Approval required
 chmod -R 777 /tmp/example
 [Approve once] [Approve for session] [Always allow] [Deny]
@@ -75,7 +75,7 @@ There was a nasty bug on the way: the gateway returns the approval data in `pend
 
 If the agent is drifting, you do not have to stop it and re-ask. Type a sentence into the input box and it is a steering message: the run continues, but under the new instruction.
 
-```
+```text
 Inserted
 Steering message not accepted
 ```
@@ -86,7 +86,7 @@ Both states are echoed. A steering message with no echo is indistinguishable fro
 
 The status bar has exactly three states: **has deltas** / **no deltas** / **fallback**. Every message carries a timestamp:
 
-```
+```text
 received 10:26:44 · took 639.3 s
 ```
 
@@ -96,7 +96,7 @@ Why does "639.3 s" matter? Because "looks stuck" and "is stuck" are different th
 
 ## Three steps to run it (phone and gateway on the same LAN)
 
-```
+```bash
 # 1. Emit the pairing code on the gateway host (zero deps; it self-checks first)
 python3 tools/hermes-paw-qr --name home
 
@@ -122,7 +122,7 @@ It does not work, and the evidence is unambiguous:
 
 In other words, the gateway's REST surface does not push token deltas. Without deltas, SSE degrades to a liveness probe.
 
-So I inverted the transport hierarchy: `getRun` polling became the baseline (P50 14.75 ms, 10 calls, 0 failures), and SSE was demoted to an enhancement. The worst case went from "SSE fails + 30 s idle timeout" to "one getRun". Polling starts at 2 s, backs off to a 5 s cap, resolves immediately on a terminal state, and stops when the app goes to the background.
+So I inverted the transport hierarchy: `getRun` polling became the baseline (one differential measurement: 10 calls, 0 failures, P50 ≈ 15 ms, worst 39.6 ms), and SSE was demoted to an enhancement. The worst case went from "SSE fails + 30 s idle timeout" to "one getRun". Polling starts at 2 s, backs off to a 5 s cap, resolves immediately on a terminal state, and stops when the app goes to the background.
 
 This is not "I failed to build streaming". It is **knowing where the boundary is and moving the effort somewhere it pays** — waiting-state UI and timestamps.
 
@@ -146,7 +146,7 @@ Two traps worth recording:
 
 ## Finally
 
-The app is small: 45 `.ets` files, zero third-party runtime dependencies, a single HAP. It is also imperfect: LAN-only, no push, no streaming.
+The app is small: 41 ArkTS source files (plus 4 device-test files), zero third-party runtime dependencies, a single HAP. It is also imperfect: LAN-only, no push, no streaming.
 
 But it solves one very concrete problem: **when I am not at the computer, I can still be responsible for this agent.**
 
