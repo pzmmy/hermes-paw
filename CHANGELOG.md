@@ -9,6 +9,8 @@
 - 会话面板抽成 `pages/chat/SessionPanel.ets`（@Component）：`ChatPage` 79,017 → 74,807 B，
   `build()` 1001 → 899 行；数据单向流入、6 个回调回写父页 @State，面板不持有 ChatVM
 - 真机验证记录见 `docs/impl-status.md` §2.17（语音模块 ASR 日志、面板开关/长按/取消）
+- 审批卡抽成 `pages/chat/ApprovalCard.ets`：`ChatPage` 74,807 → 72,692 B，
+  `build()` 899 → 836 行；真机验证见 `docs/impl-status.md` §2.18（四按钮同行、拒绝后卡片消失）
 
 ## [0.1.1] — 2026-11-20
 

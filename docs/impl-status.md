@@ -398,6 +398,51 @@ App **不转发**斜杠命令给网关（网关 REST 面不分发命令），而
 另有两次误操作：为找输入框点了 `📷` 图标打开相册选择器；按 `Back` 键把 App 退到桌面——
 脚本里不要用 `Back` 收键盘，改为点空白区。
 
+### 2.18 审批卡抽成 `pages/chat/ApprovalCard.ets`
+
+`ChatPage.build()` 里最后一个大块（原 1502–1577 行，76 行）整块外移，样式与文案一字未改。
+
+**改法**：`ApprovalCard` 收三个 `@Prop` 文本 + 一条 `onChoice(choice: string)` 回调。
+父页只留两件事——`if (this.v().pendingApproval !== null)` 决定是否创建，以及用
+`approvalCommand()` / `approvalDescription()` / `approvalStatusText()` 三个访问器算文本。
+
+**为什么文本还在父页算**：`build()` 只接受 UI 组件语法（10905209，不许写局部变量），
+而 `this.v().pendingApproval !== null` 的收窄不能跨重复访问保持，收窄只能发生在方法层。
+把访问器留在父页、只管画的部分搬走，是这个限制下的最小切法。
+
+| | 改前 | 改后 |
+|---|---|---|
+| `ChatPage.ets` | 74,807 B | **72,692 B** |
+| `ChatPage.build()` | 899 行 | **836 行** |
+| `chat/ApprovalCard.ets` | — | **3,475 B** |
+
+**真机验证（RS 80 / API 26，无线调试；设备地址不入库，见 §5 导出规则）**
+
+触发方式：把一条必须审批的命令作为指令发给 agent ——
+`Run exactly this shell command now: chmod -R 777 /data/local/tmp/paw-appr-verify`。
+发送后约 15 秒进入 `waiting_for_approval`。
+
+| 观察点 | 证据（`dumpLayout` 实测坐标与文本） |
+|---|---|
+| 卡片出现 | `(660,1858) ⚠ 需要审批` |
+| 命令原文区 | `(660,1951) chmod -R 777 /data/local/tmp/paw-appr-verify; echo "exit=$?"` |
+| 人读描述区 | `(660,2027) world/other-writable permissions` |
+| 状态行（kind 回退分支） | `(660,2086) 类型：approval — 请确认后操作` |
+| 四个按钮同行等宽 | y=2196 上 `本次 x=225` / `本会话 x=509` / `固定 x=792` / `拒绝 x=1086`（间距 283–284 px 均匀） |
+| 点「拒绝」后 | 卡片消失（`需要审批` 文本不再存在），出现「已拒绝该审批」 |
+| 副作用 | 命令未执行（拒绝分支不落盘、不改权限） |
+
+**编译与门禁**：`CompileArkTS 3s 268 ms` / `BUILD SUCCESSFUL in 4s 289ms`；
+`arkts-lint 44 files 0 findings`；`make test` 0 失败。
+
+**踩坑**：`~` 与 Windows 构建目录是两份源码（`C:\Users\12442\WorkBuddy\2026-11-15-19-24-25\hermes-paw`）。
+只改 WSL 侧直接跑 `build-paw.bat` 会得到 `CompileArkTS UP-TO-DATE` + 250 ms 的**假成功**
+（Windows 侧当时只有 43 个 `.ets`，缺新文件）。必须先
+`rsync -a entry/src/main/ets/ <win>/entry/src/main/ets/` 再编译，并以
+`CompileArkTS` 的实际耗时与两侧 `.ets` 数量核对。
+
+**剩余**：`ChatPage.build()` 836 行，还含登录闸门、状态条两块；`ChatPage.ets` 72,692 B。
+
 ### 2.17 第二梯队重构的真机验证（VoiceInput / SessionPanel）
 
 两个整块外移都在真机（RS 80 / API 26，无线调试）上验过，不是只看编译。

@@ -28,6 +28,7 @@ import { LocalMessage } from '../model/ChatMessage';
 import { LocalSession } from '../model/LocalSession';
 import { MergedSession } from '../viewmodel/SessionMerge';
 import { SessionPanel } from './chat/SessionPanel';
+import { ApprovalCard } from './chat/ApprovalCard';
 import { ServerProfile } from '../model/Profile';
 import { ApprovalControl } from '../model/Run';
 import { ToolStep } from '../model/ToolStep';
@@ -1500,80 +1501,18 @@ export struct ChatPage {
         // status poll in ChatVM is the source of truth; the card hides
         // as soon as the run leaves waiting_for_approval.
         if (this.v().pendingApproval !== null) {
-          // ArkTS: build() accepts only UI component syntax (no local
-          // statements, 10905209), and null-narrowing does not persist
-          // across re-accesses of this.v().pendingApproval — the card body
-          // reads the fields via the approvalCommand()/approvalDescription()
-          // accessors (method-layer narrowing via a local let).
-          Column() {
-            Text($r('app.string.approval_title'))
-              .fontSize(13)
-              .fontWeight(FontWeight.Bold)
-              .width('100%')
-            if (this.approvalCommand() !== '') {
-              Text(this.approvalCommand())
-                .fontSize(12)
-                .fontColor($r('app.color.text_primary'))
-                .maxLines(3)
-                .textOverflow({ overflow: TextOverflow.Ellipsis })
-                .width('100%')
-                .margin({ top: 6 })
+          // 审批卡整块已搬到 pages/chat/ApprovalCard.ets：这里只做两件事——
+          // 判断要不要创建（pendingApproval !== null），以及把收窄后的
+          // 文本与回调传进去。文本仍在父页用访问器算（build() 不许写局部
+          // 变量，而收窄只能发生在方法层）。
+          ApprovalCard({
+            command: this.approvalCommand(),
+            description: this.approvalDescription(),
+            statusText: this.approvalStatusText(),
+            onChoice: (choice: string): void => {
+              this.onApproval(choice);
             }
-            if (this.approvalDescription() !== '') {
-              Text(this.approvalDescription())
-                .fontSize(12)
-                .fontColor($r('app.color.text_secondary'))
-                .width('100%')
-                .margin({ top: 2 })
-            }
-            Text(this.approvalStatusText())
-              .fontSize(11)
-              .fontColor($r('app.color.text_hint'))
-              .width('100%')
-              .margin({ top: 4 })
-            Row() {
-              Button($r('app.string.appr_once'))
-                .fontSize(13)
-                .height(36)
-                .layoutWeight(1)
-                .margin({ right: 6 })
-                .onClick(() => {
-                  this.onApproval('once');
-                })
-              Button($r('app.string.appr_session'))
-                .fontSize(13)
-                .height(36)
-                .layoutWeight(1)
-                .margin({ right: 6 })
-                .onClick(() => {
-                  this.onApproval('session');
-                })
-              Button($r('app.string.appr_always'))
-                .fontSize(13)
-                .height(36)
-                .layoutWeight(1)
-                .margin({ right: 6 })
-                .onClick(() => {
-                  this.onApproval('always');
-                })
-              Button($r('app.string.appr_deny'))
-                .fontSize(13)
-                .height(36)
-                .layoutWeight(1)
-                .backgroundColor($r('app.color.danger'))
-                .fontColor($r('app.color.text_inverse'))
-                .onClick(() => {
-                  this.onApproval('deny');
-                })
-            }
-            .width('100%')
-            .margin({ top: 8 })
-          }
-          .padding(12)
-          .borderRadius(10)
-          .backgroundColor($r('app.color.warning_soft'))
-          .width('92%')
-          .margin({ top: 8, bottom: 8 })
+          })
           }
 
           // S2-a: pending attachment row (album picker uris, removable
