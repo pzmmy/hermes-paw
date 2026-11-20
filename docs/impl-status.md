@@ -398,6 +398,55 @@ App **不转发**斜杠命令给网关（网关 REST 面不分发命令），而
 另有两次误操作：为找输入框点了 `📷` 图标打开相册选择器；按 `Back` 键把 App 退到桌面——
 脚本里不要用 `Back` 收键盘，改为点空白区。
 
+### 2.22 轮询调度抽成 `viewmodel/PollScheduler.ets`
+
+`ChatVM` 里轮询的**机制**与**语义**原本缠在一起，这次按一条线切开：
+
+| 归属 | 内容 |
+|---|---|
+| `PollScheduler`（机制） | setInterval ticker、在飞守卫（同一 run 的 getRun ≤1）、run 身份、当前拍距、1 秒秒表 |
+| `ChatVM`（语义） | 三条放弃判据（连接层失败 / 未知状态 / 30min 绝对上限）、快照归并与去重、`finalizeRun` 收口 |
+
+| | 改前 | 改后 |
+|---|---|---|
+| `ChatVM.ets` | 90,781 B | **89,200 B** |
+| `viewmodel/PollScheduler.ets` | — | **3,751 B** |
+| 删掉的字段 | 6 个（ticker 句柄 / 在飞标志 / 拍距 / runId / 起算时刻 / 秒表句柄） | — |
+| 删掉的方法 | `armBaselineTicker()` | — |
+
+调度器只保证四条不变量，业务判定一概不碰：
+1. 同一时刻只有一条 ticker（`start`/`rearm` 先清旧句柄）
+2. 同一 run 在飞 `getRun` ≤ 1（`tryEnter()` 拿不到就跳过本拍，处理完必须 `leave()`）
+3. 拍距可变（`rearm`），但只在运行中生效
+4. `stop()` 后 runId / startAt / inFlight / elapsed 全部归零
+
+**真机端到端验证（RS 80 / API 26）**——抓 hilog，看的是 `ChatVM:` 打出的实际拍点：
+
+```
+baseline poll started: interval=2000ms
+poll#0 t=2025ms   poll#1 t=4039ms   poll#2 t=6039ms
+baseline poll slowed down: interval=4000ms
+poll#3 t=10065ms  poll#4 t=14074ms  poll#5 t=18089ms
+baseline poll slowed down: interval=5000ms
+poll#6 t=23109ms
+```
+
+拍距 2s×3 → 4s×3 → 5s 封顶，正是 `nextPollInterval` 的自适应曲线；`rearm()` 换拍距后
+实际间隔随之变化，说明 ticker 重建生效。
+
+其余路径：
+
+| 场景 | 证据 |
+|---|---|
+| 终态收口 | 任务跑完：`已收到 2341 字 · 用时 33.1 秒`，输入栏回到「发送」，标题自动派生为 `Slow count from 1 to 500` |
+| 秒表回调 | 同一 run 两次采样：`已等待 6 秒` → `已等待 13 秒`（`onElapsed` 每秒写 `elapsedSec` + `notifyUi`） |
+| 用户停止 | 点「停止」→ 确认 → 顶部「已停止生成」，输入栏回到「发送」（`stop()` 清 ticker/秒表/在飞标志） |
+
+**门禁调整**：`poll-policy-selftest` 的 D1 原本断言
+`nextPollInterval(this.baselinePollIntervalMs` 这个**入参表达式**；拍距字段搬进调度器后
+变成 `this.poller.getIntervalMs()`，断言改为「调用了 `nextPollInterval`」——语义不变，
+仍能拦住「自适应段落被删掉」。
+
 ### 2.21 输入区三条无状态带抽组件（附件条 / 气泡操作栏 / 引用条）
 
 三块都是「无状态条」——不含 `TextInput` 双向绑定，因此可以安全外移，不会引发光标跳动。

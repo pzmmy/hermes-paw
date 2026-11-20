@@ -76,7 +76,9 @@ check("C 反向对照：去掉封顶必与正解不同", len(diff) > 0,
       "变异体与期望一致，说明断言无效")
 
 # D 结构断言：ChatVM 里自适应段落确实走 nextPollInterval
-check("D1 ChatVM 调用 nextPollInterval", "nextPollInterval(this.baselinePollIntervalMs" in vtxt)
+# 2026-11-20：拍距字段搬进 PollScheduler 后，入参由 this.baselinePollIntervalMs
+# 变成 this.poller.getIntervalMs()。断言改为「调用了 nextPollInterval」，不再绑死参数表达式。
+check("D1 ChatVM 调用 nextPollInterval", "nextPollInterval(" in vtxt)
 check("D2 ChatVM 仍有 slowed down 日志",
       "baseline poll slowed down" in vtxt)
 

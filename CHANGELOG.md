@@ -12,6 +12,10 @@
 - 真机验证见 `docs/impl-status.md` §2.21（操作栏五钮条件正确、引用条点击清除、附件条 2→1）
 - `tools/s2b-selftest.py`：气泡栏/引用条的断言从「必须在 ChatPage.ets 内」改为
   「组件持按键 + 页面持接线」，对 `pages/chat/*.ets` 联合扫描
+- 轮询机制抽成 `viewmodel/PollScheduler.ets`（3,751 B）：ticker 生命周期、在飞守卫、
+  run 身份、拍距、1 秒秒表归它；`ChatVM` 只留放弃判据、快照归并、收口语义
+- `ChatVM.ets` 90,781 → 89,200 B（删 6 个字段 + `armBaselineTicker()`）
+- 真机验到完整自适应曲线：2s×3 → 4s×3 → 5s 封顶，且停止/收口/秒表均正常（`docs/impl-status.md` §2.22）
 
 ## [0.1.2] — 2026-11-20
 

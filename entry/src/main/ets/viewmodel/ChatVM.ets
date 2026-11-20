@@ -54,6 +54,7 @@ import { PreparedImage, pickImages, prepareImage } from '../media/PhotoPick';
 import { SlashCommand, slashName, slashArg, findCommand, isKnownUnmapped } from '../net/SlashCommands';
 import { GiveUpReason, decideGiveUp, isKnownActiveStatus } from './stream/RunPolicy';
 import { POLL_START_MS, POLL_SSE_ACTIVE_MS, nextPollInterval } from './stream/PollPolicy';
+import { PollScheduler } from './PollScheduler';
 
 const TAG: string = 'ChatVM';
 
@@ -97,7 +98,7 @@ function boolFrom(v: Object | null | undefined): boolean {
  *  - busy: boolean            — 是否有活跃 run（sendMessage 置 true，finalizeRun 置 false）
  *  - pollingForResult: boolean— 残留兼容位（S3-b 后恒 false，UI 仍绑定该字段）
  *  - streamGen: number        — 流代数；destroyStream/openRunStream 时自增，让旧流回调被丢弃
- *  - baselinePollTimer: number— 基线轮询 ticker 句柄（-1 = 未运行）
+ *  - poller: PollScheduler— 基线轮询机制（ticker / 在飞守卫 / 拍距 / 秒表）
  *
  *  状态迁移：
  *  [idle] ──sendMessage──▶ [running: 基线轮询 + SSE 增强 并行]
@@ -109,7 +110,7 @@ function boolFrom(v: Object | null | undefined): boolean {
  *
  *  关键不变量：
  *  - 基线轮询是唯一取数通道：SSE 错误/重开失败都只记日志，不改判 run 的生死
- *  - 同一 run 在飞 getRun ≤1（baselinePollInFlight 守卫，本轮 tick 直接跳过）
+ *  - 同一 run 在飞 getRun ≤1（poller.tryEnter/leave 守卫，本轮 tick 直接跳过）
  *  - 旧流回调必须被 streamGen 守卫丢弃（destroyStream 取消不掉 SDK 内部定时器）
  *  - finalizeRun 是唯一的「终态收口」：busy=false + pollingForResult=false
  *    都在此统一复位，不要在其他地方散落复位
@@ -268,15 +269,9 @@ export class ChatVM {
   }
 
   // ---- §R0 基线轮询（getRun 为基线，SSE 只做增强）----
-  /** 基线轮询 ticker 句柄（setInterval；-1 = 未运行）。单一 ticker 驱动，
-   *  禁止嵌套定时器竞速（ArkTS async 下实测不可靠，S3-b 前的 recovery 通道即因此废弃）。 */
-  private baselinePollTimer: number = -1;
-  /** 并发不变量（§R0-3）：同一 run 在飞 getRun ≤1 —— 在飞时本轮 tick 直接跳过。 */
-  private baselinePollInFlight: boolean = false;
-  /** 当前拍距（自适应：无变化翻倍，上限 10s；SSE 活跃时提到 10s）。 */
-  private baselinePollIntervalMs: number = POLL_START_MS;
-  /** 基线轮询跟踪的 run id（与 activeRunId 分开，收口时各自复位）。 */
-  private baselineRunId: string = '';
+  /** §R0 轮询**机制**（ticker 生命周期 / 在飞守卫 / run 身份 / 拍距 / 秒表）
+   *  全部收在 PollScheduler；ChatVM 只保留**语义**：放弃判据、快照归并、收口。 */
+  private poller: PollScheduler = new PollScheduler();
   /** 上一次快照 output（判定「连续无变化」用）。 */
   private baselineLastOutput: string = '';
   /** 连续无变化轮数（命中 3 次翻倍后清零）。 */
@@ -289,12 +284,9 @@ export class ChatVM {
   private unknownStreak: number = 0;
   /** §R3 ②：最后一个未知 status 原名（诊断码，原样带进 UI）。 */
   private lastUnknownStatus: string = '';
-  /** §R3 ③：本轮 baseline 轮询起算时刻（绝对上限 30min 的基准，不用墙钟放弃）。 */
-  private baselineStartAt: number = 0;
   /** §R3：收口时带走的诊断码（protocol-error 用；UI 文案拼接用）。 */
   private giveUpDetail: string = '';
-  /** P1：等待期已用秒数（UI 状态条读这个字段，替代按 runStartedAt 现算）。 */
-  private elapsedTimer: number = -1;
+  /** P1：等待期已用秒数（UI 状态条读这个字段）。由 PollScheduler 的秒表回调写入。 */
   /** S6a 埋点：首个增量（SSE chunk / 轮询非空 output）到达时刻，0 = 尚无。 */
   private firstDeltaAt: number = 0;
   /** S6a 埋点：上一拍快照 output 长度（判定本轮是否已出现增量）。 */
@@ -776,12 +768,9 @@ export class ChatVM {
 
   // ================= §R0 基线轮询（getRun 为基线，SSE 为增强） =================
 
-  /** §R0-2：建 run 成功即刻开跑，不等 SSE 判死；单一 setInterval ticker 驱动
-   *  （嵌套定时器竞速在 ArkTS async 下不可靠——S3-b 前的 recovery 通道即因此废弃）。 */
+  /** §R0-2：建 run 成功即刻开跑，不等 SSE 判死。
+   *  ticker 与秒表交给 PollScheduler；这里只把「一拍要做什么」和「一秒要做什么」接上。 */
   private startBaselinePoll(runId: string): void {
-    this.stopBaselinePoll(); // 幂等清场：同一时刻只允许一条基线 ticker
-    this.baselineRunId = runId;
-    this.baselinePollIntervalMs = POLL_START_MS;
     this.baselineLastOutput = '';
     this.baselineIdleRounds = 0;
     this.baselineTextFromSnapshot = false;
@@ -790,41 +779,31 @@ export class ChatVM {
     this.failStreak = 0;
     this.unknownStreak = 0;
     this.lastUnknownStatus = '';
-    this.baselineStartAt = Date.now(); // §R3 ③：30min 绝对上限的起算点
     this.giveUpDetail = '';
     // P1：等待期计时器，每秒推进「已用时 N 秒」（实测缺陷：一直是 0）。
     this.elapsedSec = 0;
-    this.elapsedTimer = setInterval((): void => {
-      this.elapsedSec = this.elapsedSec + 1;
-      this.notifyUi();
-    }, ELAPSED_TICK_MS);
-    this.armBaselineTicker();
+    let vm: ChatVM = this;
+    this.poller.onTick = (rid: string): void => {
+      vm.baselinePollTick(rid);
+    };
+    this.poller.onElapsed = (sec: number): void => {
+      vm.elapsedSec = sec;
+      vm.notifyUi();
+    };
+    this.poller.start(runId, POLL_START_MS);
     LogSafe.i(TAG, 'baseline poll started: runId=%{public}s interval=%{public}dms',
-      runId, this.baselinePollIntervalMs);
-  }
-
-  /** 按 baselinePollIntervalMs 建/重建 tick 句柄（自适应降频时调用）。 */
-  private armBaselineTicker(): void {
-    if (this.baselinePollTimer !== -1) {
-      clearInterval(this.baselinePollTimer);
-      this.baselinePollTimer = -1;
-    }
-    this.baselinePollTimer = setInterval((): void => {
-      this.baselinePollTick();
-    }, this.baselinePollIntervalMs);
+      runId, POLL_START_MS);
   }
 
   /** §R0-3：在飞跳过（同一 run 在飞 getRun ≤1，不排队不叠加）。 */
-  private baselinePollTick(): void {
-    if (this.baselinePollInFlight) {
-      return; // 跳过本轮：绝不并发两个 getRun
-    }
-    let rid: string = this.baselineRunId;
+  private baselinePollTick(rid: string): void {
     if (rid === '') {
-      this.stopBaselinePoll();
+      this.poller.stop();
       return;
     }
-    this.baselinePollInFlight = true;
+    if (!this.poller.tryEnter()) {
+      return; // 跳过本轮：绝不并发两个 getRun
+    }
     // async 壳 + try/finally：成功失败都清在飞标志
     this.baselinePollTickAsync(rid).catch((err: Error): void => {
       LogSafe.w(TAG, 'baseline poll tick failed: %{public}s', err.message);
@@ -835,7 +814,7 @@ export class ChatVM {
     try {
       await this.baselinePollOnce(rid);
     } finally {
-      this.baselinePollInFlight = false; // 无论成功失败都清在飞标志
+      this.poller.leave(); // 无论成功失败都清在飞标志
     }
   }
 
@@ -866,21 +845,21 @@ export class ChatVM {
   /** §R3 收口：判据命中则停轮询 + finalizeRun；未命中返回 false 继续等。
    *  计数与诊断码在 stopBaselinePoll 里归零，所以先抓诊断码再收口。 */
   private checkGiveUp(rid: string): boolean {
-    // 防御：轮询已停（stopBaselinePoll 把 baselineRunId/baselineStartAt 清了）
+    // 防御：轮询已停（poller.stop 已把 runId/startAt 清了）
     // 或已切 run 时，本拍的计数不作数——否则 Date.now() - 0 会瞬间命中 30min
     // 绝对上限，对一条已收口的 run 误发 abandoned-remote。
-    if (rid === '' || rid !== this.baselineRunId || this.baselineStartAt === 0) {
+    if (rid === '' || rid !== this.poller.getRunId() || this.poller.getStartAt() === 0) {
       return false;
     }
     let reason: GiveUpReason = this.shouldGiveUp(this.failStreak, this.unknownStreak,
-      Date.now() - this.baselineStartAt);
+      Date.now() - this.poller.getStartAt());
     if (reason === GiveUpReason.NONE) {
       return false;
     }
     let how: string = this.giveUpHow(reason);
     LogSafe.w(TAG,
       'baseline poll gave up: how=%{public}s failStreak=%{public}d unknownStreak=%{public}d elapsedMs=%{public}d runId=%{public}s',
-      how, this.failStreak, this.unknownStreak, Date.now() - this.baselineStartAt, rid);
+      how, this.failStreak, this.unknownStreak, Date.now() - this.poller.getStartAt(), rid);
     this.giveUpDetail = reason === GiveUpReason.PROTOCOL_ERROR ? this.lastUnknownStatus : '';
     this.stopBaselinePoll();
     this.finalizeRun('', how, false);
@@ -904,7 +883,7 @@ export class ChatVM {
       this.checkGiveUp(rid);
       return; // 未达峰：下一拍再来
     }
-    if (rid !== this.baselineRunId) {
+    if (rid !== this.poller.getRunId()) {
       return; // 已切 run：本次结果作废
     }
     let elapsed: number = Date.now() - this.runStartedAt;
@@ -956,13 +935,12 @@ export class ChatVM {
     // §R0-4 自适应：连续 N 轮 output 无变化 -> 间隔翻倍（封顶见 PollPolicy）。
     if (snap.output === this.baselineLastOutput) {
       this.baselineIdleRounds = this.baselineIdleRounds + 1;
-      const next: number = nextPollInterval(this.baselinePollIntervalMs, this.baselineIdleRounds);
-      if (next !== this.baselinePollIntervalMs) {
-        this.baselinePollIntervalMs = next;
+      const next: number = nextPollInterval(this.poller.getIntervalMs(), this.baselineIdleRounds);
+      if (next !== this.poller.getIntervalMs()) {
         this.baselineIdleRounds = 0;
-        this.armBaselineTicker(); // 重建 interval 使新拍距生效
+        this.poller.rearm(next); // 重建 interval 使新拍距生效
         LogSafe.i(TAG, 'baseline poll slowed down: interval=%{public}dms',
-          this.baselinePollIntervalMs);
+          this.poller.getIntervalMs());
       }
     } else {
       this.baselineIdleRounds = 0;
@@ -982,16 +960,7 @@ export class ChatVM {
 
   /** 停轮询 + 复位全部 baseline/elapsed 字段（幂等）。 */
   private stopBaselinePoll(): void {
-    if (this.baselinePollTimer !== -1) {
-      clearInterval(this.baselinePollTimer);
-      this.baselinePollTimer = -1;
-    }
-    if (this.elapsedTimer !== -1) {
-      clearInterval(this.elapsedTimer);
-      this.elapsedTimer = -1;
-    }
-    this.baselinePollInFlight = false;
-    this.baselineRunId = '';
+    this.poller.stop(); // ticker / 秒表 / 在飞守卫 / run 身份 / 起算时刻全部归零
     this.baselineLastOutput = '';
     this.baselineIdleRounds = 0;
     this.baselineTextFromSnapshot = false;
@@ -1000,7 +969,6 @@ export class ChatVM {
     this.failStreak = 0;
     this.unknownStreak = 0;
     this.lastUnknownStatus = '';
-    this.baselineStartAt = 0;
     this.elapsedSec = 0;
   }
 
@@ -1325,12 +1293,11 @@ export class ChatVM {
         let delta: string = strFrom(d['delta']);
         if (delta !== '') {
           // §R0-5：SSE 一旦真的吐 delta -> 渲染仍交给增量，基线降频到 10s 只做对账。
-          if (this.baselinePollTimer !== -1
-              && this.baselinePollIntervalMs < POLL_SSE_ACTIVE_MS) {
-            this.baselinePollIntervalMs = POLL_SSE_ACTIVE_MS;
-            this.armBaselineTicker();
+          if (this.poller.isRunning()
+              && this.poller.getIntervalMs() < POLL_SSE_ACTIVE_MS) {
+            this.poller.rearm(POLL_SSE_ACTIVE_MS);
             LogSafe.i(TAG, 'SSE delivering deltas -> baseline poll slowed to %{public}dms (reconcile only)',
-              this.baselinePollIntervalMs);
+              this.poller.getIntervalMs());
           }
           // §R0-6：气泡文本若已由快照写入，服务端从 seq 0 重放的 delta 可能
           // 重复已有尾部——这种情况下跳过；其余照常追加。仍复用同一个
@@ -1529,9 +1496,9 @@ export class ChatVM {
     if (this.suspended) {
       return;
     }
-    // §R0-5 SSE 语义降级：基线轮询已在跑（baselinePollTimer !== -1）时，流错误
+    // §R0-5 SSE 语义降级：基线轮询已在跑（poller.isRunning()）时，流错误
     // 只记日志 / 不重订阅——结果由基线轮询负责取回，SSE 只是增强。
-    if (this.baselinePollTimer !== -1) {
+    if (this.poller.isRunning()) {
       LogSafe.d(TAG,
         'stream error ignored (baseline poll active): kind=%{public}s code=%{public}d',
         kind, err.code);
