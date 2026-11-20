@@ -164,4 +164,5 @@ MIT（见 `LICENSE`）。第三方引用与许可清单见 `docs/third-party-ref
 - 不随仓库分发的内部材料：`docs/test-reports/`（真机/模拟器实测证据，含内网地址）、
   `evidence/`（运行时抓包与日志样本）。二者已在 `.gitignore` 中，本地保留、入库与外发都排除。
 - 设计文档保留在 `docs/` 下，属实现层事实记录，可能随代码演进更新；
-  英文索引页（说明每篇文档回答什么问题、给谁看、是否仍为准）→ **[`docs/README.en.md`](docs/README.en.md)**。
+  中文索引页（每篇文档回答什么问题、给谁看、是否仍为准）→ **[`docs/README.md`](docs/README.md)**；
+  英文索引 → [`docs/README.en.md`](docs/README.en.md)。

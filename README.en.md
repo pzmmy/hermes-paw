@@ -127,4 +127,4 @@ dependencies; the only vendored code is BSD-3 `segno` used by the QR helper scri
   and kept locally only.
 - Design documents under `docs/` are implementation-level records in Simplified Chinese; they evolve with the code.
   Start from the English index: **[`docs/README.en.md`](docs/README.en.md)** — it says what each document
-  answers, who it is for, and whether it is still authoritative.
+  answers, who it is for, and whether it is still authoritative (Simplified Chinese index: [`docs/README.md`](docs/README.md)).
