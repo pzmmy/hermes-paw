@@ -163,6 +163,34 @@ def main() -> int:
         chk("raw.githubusercontent.com" in s3, "en-publish 图片用直链（dev.to 可直接渲染）")
         chk("published: false" in s3, "en-publish 默认未发布（published: false）")
 
+    # ── 8. 文风（去 AI 味）────────────────────────────────────────────
+    # 依据：AI 稿的典型特征是——破折号成瘾、加粗成瘾、段落长度整齐、
+    # 以及一批一眼可辨的套话。这里把它们量化成可判阈值。
+    CLICHE_ZH = ("首先，", "其次，", "综上所述", "总而言之", "值得注意的是",
+                 "不难看出", "让我来", "我们可以看到", "总而言之")
+    CLICHE_EN = ("in other words", "it is worth noting", "delve into", "moreover,",
+                 "furthermore,", "in conclusion", "let's dive")
+    for d in DOCS:
+        s = bodies[d.name]
+        zh = d.name.startswith("zh")
+        # 破折号 / 加粗密度
+        if zh:
+            dash = s.count("——")
+            per_k = dash * 1000 / max(len(s), 1)
+            chk(per_k <= 2.2, f"{d.name} 破折号密度 ≤2.2‰（实际 {per_k:.1f}‰，{dash} 处）", f"{per_k:.1f}‰")
+        bold = len(re.findall(r"\*\*[^*]+\*\*", s))
+        chk(bold <= 10, f"{d.name} 加粗 ≤10 处（实际 {bold}）", str(bold))
+        # 段落长度差异：真人写稿段落长短不齐，AI 稿趋于均匀
+        paras = [len(x) for x in strip_fences(s).split("\n\n")
+                 if len(x.strip()) > 40 and not x.strip().startswith(("|", "#", ">", "-"))]
+        if len(paras) >= 6:
+            ratio = max(paras) / max(min(paras), 1)
+            chk(ratio >= 3.0, f"{d.name} 段落长短有差异（最长/最短 ≥3，实际 {ratio:.1f}）", f"{ratio:.1f}")
+        # 套话黑名单
+        low = s.lower() if not zh else s
+        hits = [c for c in (CLICHE_ZH if zh else CLICHE_EN) if c.lower() in low]
+        chk(not hits, f"{d.name} 无套话", str(hits))
+
     print(f"\npromo-selftest: {'PASS' if not fail else 'FAIL'} ({len(ok)}/{len(ok)+len(fail)})")
     if fail:
         print("提示：外发平台（华为社区 / dev.to）不读仓库相对路径，发布时须手动上传对应 GIF。")
