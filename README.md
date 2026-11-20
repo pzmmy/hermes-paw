@@ -118,6 +118,7 @@ python3 tools/hermes-paw-qr --apply    # 四态对账缺啥补啥（幂等；有
 tools/hermes-paw-qr            # 出码（单一档：default profile + 主 key，全功能）
 python3 tools/hermes-paw-qr --prompt   # 接入提示词（目标式，贴给 Hermes 智能体委托配置）
 python3 tools/hermes-paw-qr --json     # 机器模式（仅 URI，非 TTY 用；与 --png 互斥）
+  `--lang en` 切英文输出（默认简体中文；也可用环境变量 `HERMESPAW_LANG=en`）。
 ```
 
 **手动逐条（或无脚本时）**——①-⑤⑦-⑨ 已于 Hermes 网关（v0.22.5）验证原样可执行（2026-10-30）：

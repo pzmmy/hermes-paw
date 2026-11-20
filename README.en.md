@@ -35,7 +35,8 @@ conversation. The trade-off: outside that subnet it does not work.
    ```
 
    It self-checks `/v1/models` first and refuses to print a code that cannot work — if you get a code,
-   the phone can connect.
+   the phone can connect. Output defaults to Simplified Chinese; add `--lang en` for English
+   (or set `HERMESPAW_LANG=en`).
 
 2. **Scan it**: App → Settings → *Scan to configure* (or *First-time setup*).
 

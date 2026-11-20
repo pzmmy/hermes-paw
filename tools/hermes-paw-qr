@@ -88,6 +88,210 @@ except ImportError:
     YAML_OK = False
 
 
+# ---------- 文案双语（--lang zh|en；未指定时按环境推断，兜底 zh） ----------
+# 为什么不默认英文：仓库的 selftest（s15）断言了中文文案里的关键词（如「互斥」），
+# CI 也跑同一条；默认 zh 才能让门禁在任何 LANG 环境下都确定。要英文显式给 --lang en。
+
+_LANG = "zh"
+
+_MSG: dict[str, dict[str, str]] = {
+    "zh": {
+        "qr_fallback": "  （QR 库 segno 不可用，降级：请复制下方 URI 粘贴到任意二维码生成器）",
+        "png_no_segno": "QR 库 segno 不可用，无法生成 PNG（可先 --json 拿 URI）",
+        "key_keep": "  {label} key 可用（≥16 字符），保留现值（不重写）",
+        "key_overwrite": "  ⚠️ 现存 {label} key 不可用（<16 字符），已用新 key 覆盖（旧文件备份 {bak}）",
+        "key_overwrite_tail": "     此前发出的所有{label}码作废，需重发",
+        "key_new": "  {label} .env 不存在，已新建 API_SERVER_KEY（64 位 hex，chmod 600）",
+        "apply_cfg_unparsed": "config.yaml 结构无法识别（{cfg}）。请手动执行：\n"
+                              "  hermes config set platforms.api_server.enabled true\n"
+                              "  hermes config set platforms.api_server.extra.host 0.0.0.0\n"
+                              "  hermes config set platforms.api_server.extra.port 8377",
+        "apply_now": "  现状: enabled={enabled}  host={host}  port={port}  key={key}  listening={listening}",
+        "apply_reverify": "  复验: enabled={enabled}  host={host}  port={port}  key={key}  listening={listening}",
+        "k_ok": "可用",
+        "k_weak": "缺失/弱",
+        "k_missing": "缺失",
+        "apply_no_cli_enabled": "platforms.api_server.enabled 不是 true，且本机找不到 hermes CLI。"
+                                "请手动执行: hermes config set platforms.api_server.enabled true",
+        "apply_set_enabled_fail": "hermes config set enabled 失败: {out}",
+        "apply_enabled_ok": "  ✓ 已设置 platforms.api_server.enabled=true",
+        "apply_no_cli_host": "host={host} 只绑回环，手机连不上，且本机找不到 hermes CLI。"
+                             "请手动执行: hermes config set platforms.api_server.extra.host 0.0.0.0",
+        "apply_set_host_fail": "hermes config set host 失败: {out}",
+        "apply_host_ok": "  ✓ 已设置 host 0.0.0.0（原 {host}，只绑回环手机连不上）",
+        "apply_changed": "\n  ⚠ 已写入 {n} 项改动，需人工重启网关才生效（本脚本绝不自己重启）：",
+        "apply_port_not_ready": "\n  ⚠ 端口未在听或状态未就绪 → {cmd}（配置改了网关未重启，或网关未运行）",
+        "apply_all_good": "\n  ✓ 四态齐备，可以直接出码：hermes-paw-qr --list 然后 hermes-paw-qr",
+        "list_col_role": "角色",
+        "list_col_cangen": "可出码",
+        "list_role_main": "主 key",
+        "list_dash": "—",
+        "list_key_chars": "{n}字符",
+        "list_key_missing": "缺失",
+        "list_yes": "是",
+        "list_no": "否",
+        "list_gen_apply": "  生成: hermes-paw-qr --apply         → 四态对账（enabled/host/key/端口）",
+        "list_gen_plain": "        hermes-paw-qr                 → 出码（单一档 = default profile + 主 key）",
+        "tty_refuse": "检测到非交互终端（非 TTY），拒绝出码（防 key 进日志）。",
+        "json_png_exclusive": "--json 与 --png 互斥（§4.8 D1）：--png 非 TTY 静默模式 stdout 零 URI，"
+                              "两条命令合成一跑会把 key 打进终端日志",
+        "profile_missing": "profile '{profile}' 不存在（{cfg} 缺失）。",
+        "cfg_unparsed_named": "config.yaml 结构无法识别（{cfg}），请手动核对 api_server 段",
+        "not_ready": "服务端未就绪：\n  - {problems}",
+        "no_profile_key": "profile '{profile}' 没有自己的 API_SERVER_KEY（{env}）——命名 profile 缺 key 会 401 fail-closed",
+        "key_too_short": "profile '{profile}' 的 API_SERVER_KEY 只有 {n} 字符，Hermes 要求 ≥16",
+        "port_not_listening": "{port} 端口没有监听 → 网关未加载 api_server（配置改了要 {cmd}；本脚本不自己重启）",
+        "selftest_fail": "/v1/models 自检失败（{code}）：{why}",
+        "no_lan_addr": "探测不到局域网地址（只有 loopback/docker）。用 --host 指定",
+        "gen_banner": "主 key 码已生成 · {ts} · 用户 {user}",
+        "box_header": "  ┌─ HermesPaw 扫码配置 ──────────────────────",
+        "box_name": "  │ 档案名   : {name}",
+        "box_addr": "  │ 地址     : {addr}",
+        "box_alt": "  │ 其它地址 : {addrs}（均已写入二维码，App 自动选可达项）",
+        "box_verify": "  │ 校验     : {why}",
+        "paste_hint": "  扫不开 / 不在一起时，把这行发给对方粘到 App 设置页：",
+        "cred_warning": "  ⚠ 这一行就是网关主凭据（default profile key），别截图、别发群；用完按回车清屏。",
+        "png_written": "  PNG 已写出: {path}（给不在一起的人发图用，用完请删）",
+        "json_only_gen": "--json 仅用于 gen（出码 URI）；与 --prompt/--apply/--list 不兼容（§4.8 P1-r2-2）",
+        "prob_enabled": "platforms.api_server.enabled 不是 true → 跑 hermes-paw-qr --apply 或手动 hermes config set platforms.api_server.enabled true",
+        "prob_host": "host={host} 只绑回环，手机连不上 → 跑 hermes-paw-qr --apply 或手动 hermes config set platforms.api_server.extra.host 0.0.0.0",
+        "skipped_selftest": "已跳过自检（--no-selftest）",
+        "quiet_line": "  Profile: {profile} (/p/{profile}/)  档案名: {name}  地址: {addr}  校验: {why}",
+        "quiet_note": "  （PNG-only 静默模式 §4.8：stdout 零 URI/零 ASCII）",
+        "png_written_quiet": "  PNG 已写出: {path}（把此图片文件发给用户，用完请删）",
+        "press_enter": "\n  回车清屏…",
+        "help_desc": "生成 HermesPaw 扫码配置串（先自检，不通不出码；单一档码 = default profile + 主 key；零依赖）",
+        "help_apply": "四态对账：enabled/host/key/端口，缺啥补啥；需重启网关时只通知不重启（幂等）",
+        "help_list": "列出本机可出码的 profile 及状态",
+        "help_host": "覆盖自动探测的地址，如 192.0.2.50",
+        "help_name": "档案显示名（出码默认 Hermes·<主机名>；--prompt 可选，空则省略档案名行）",
+        "help_once": "打印后按回车清屏",
+        "help_json": "只输出 URI（不打印二维码；非 TTY 唯一允许模式）",
+        "help_png": "同时输出 PNG（纯 Python 生成，无 PIL）；非 TTY + --png = PNG-only 模式："
+                    "只写文件，stdout 零 URI/零 ASCII（§4.8 agent 流程）",
+        "help_prompt": "打印 HermesPaw 接入提示词（单一档模板，与 App OnboardPage 同一模板），"
+                       "贴给 Hermes 执行；不出码、不改配置（§4.8）。模板恒为简体中文（与 App 端字节一致）",
+        "help_no_selftest": "跳过 /v1/models 自检（仅排障用）",
+        "help_lang": "输出语言：zh（简体中文，默认）或 en（English）。也可用环境变量 HERMESPAW_LANG 指定",
+    },
+    "en": {
+        "qr_fallback": "  (segno unavailable; copy the URI below into any QR generator)",
+        "png_no_segno": "segno unavailable: cannot write the PNG (use --json to get the URI)",
+        "key_keep": "  {label} key is usable (>=16 chars); keeping the existing value",
+        "key_overwrite": "  ⚠️ existing {label} key is unusable (<16 chars); overwritten with a new key "
+                         "(old file backed up as {bak})",
+        "key_overwrite_tail": "     every {label} code issued before is now invalid; re-issue as needed",
+        "key_new": "  {label} .env not found; created API_SERVER_KEY (64 hex chars, chmod 600)",
+        "apply_cfg_unparsed": "cannot recognise config.yaml layout ({cfg}). Run manually:\n"
+                              "  hermes config set platforms.api_server.enabled true\n"
+                              "  hermes config set platforms.api_server.extra.host 0.0.0.0\n"
+                              "  hermes config set platforms.api_server.extra.port 8377",
+        "apply_now": "  now : enabled={enabled}  host={host}  port={port}  key={key}  listening={listening}",
+        "apply_reverify": "  after: enabled={enabled}  host={host}  port={port}  key={key}  listening={listening}",
+        "k_ok": "usable",
+        "k_weak": "weak",
+        "k_missing": "missing",
+        "apply_no_cli_enabled": "platforms.api_server.enabled is not true and no hermes CLI was found. "
+                                "Run: hermes config set platforms.api_server.enabled true",
+        "apply_set_enabled_fail": "hermes config set enabled failed: {out}",
+        "apply_enabled_ok": "  ✓ platforms.api_server.enabled=true is set",
+        "apply_no_cli_host": "host={host} binds loopback only, so a phone cannot reach it, and no hermes CLI was found. "
+                             "Run: hermes config set platforms.api_server.extra.host 0.0.0.0",
+        "apply_set_host_fail": "hermes config set host failed: {out}",
+        "apply_host_ok": "  ✓ host is now 0.0.0.0 (was {host}; loopback-only is unreachable from a phone)",
+        "apply_changed": "\n  ⚠ {n} change(s) written; the gateway must be restarted by hand to take effect "
+                         "(this script never restarts it):",
+        "apply_port_not_ready": "\n  ⚠ port not listening or state not ready → {cmd} "
+                                "(config changed but gateway not restarted, or gateway is not running)",
+        "apply_all_good": "\n  ✓ all four checks pass; generate a code with: hermes-paw-qr --list, then hermes-paw-qr",
+        "list_col_role": "role",
+        "list_col_cangen": "can gen",
+        "list_role_main": "master",
+        "list_dash": "—",
+        "list_key_chars": "{n} chars",
+        "list_key_missing": "missing",
+        "list_yes": "yes",
+        "list_no": "no",
+        "list_gen_apply": "  generate: hermes-paw-qr --apply         → reconcile (enabled/host/key/port)",
+        "list_gen_plain": "            hermes-paw-qr                 → emit a code (single tier = default profile + master key)",
+        "tty_refuse": "non-interactive terminal (not a TTY): refusing to emit a code (keeps the key out of logs).",
+        "json_png_exclusive": "--json and --png are mutually exclusive (§4.8 D1): in non-TTY PNG-only mode stdout must "
+                              "carry no URI; running both in one command leaks the key into terminal logs",
+        "profile_missing": "profile '{profile}' does not exist ({cfg} missing).",
+        "cfg_unparsed_named": "cannot recognise config.yaml layout ({cfg}); check the api_server block by hand",
+        "not_ready": "server not ready:\n  - {problems}",
+        "no_profile_key": "profile '{profile}' has no API_SERVER_KEY of its own ({env}); a named profile without a key "
+                          "fails closed with 401",
+        "key_too_short": "profile '{profile}' has an API_SERVER_KEY of {n} chars; Hermes requires >=16",
+        "port_not_listening": "nothing is listening on port {port} → the gateway did not load api_server "
+                              "(after changing config run {cmd}; this script never restarts it)",
+        "selftest_fail": "/v1/models self-check failed ({code}): {why}",
+        "no_lan_addr": "no LAN address detected (loopback/docker only). Use --host to set one",
+        "gen_banner": "master-key code generated · {ts} · user {user}",
+        "box_header": "  ┌─ HermesPaw pairing payload ───────────────",
+        "box_name": "  │ profile  : {name}",
+        "box_addr": "  │ address  : {addr}",
+        "box_alt": "  │ also     : {addrs} (all embedded in the QR; the app picks a reachable one)",
+        "box_verify": "  │ verified : {why}",
+        "paste_hint": "  If scanning is not possible, send this line to the other person to paste into the app's settings page:",
+        "cred_warning": "  ⚠ that line is the gateway master credential (default profile key). Do not screenshot it or "
+                        "post it in a group; press Enter to clear the screen when done.",
+        "png_written": "  PNG written: {path} (for someone who cannot scan; delete it when done)",
+        "json_only_gen": "--json only applies to gen (emit URI); it is incompatible with --prompt/--apply/--list "
+                         "(§4.8 P1-r2-2)",
+        "prob_enabled": "platforms.api_server.enabled is not true → run hermes-paw-qr --apply, or set it by hand "
+                        "with: hermes config set platforms.api_server.enabled true",
+        "prob_host": "host={host} binds loopback only, so a phone cannot reach it → run hermes-paw-qr --apply, or set it "
+                     "by hand with: hermes config set platforms.api_server.extra.host 0.0.0.0",
+        "skipped_selftest": "self-check skipped (--no-selftest)",
+        "quiet_line": "  profile: {profile} (/p/{profile}/)  name: {name}  address: {addr}  verified: {why}",
+        "quiet_note": "  (PNG-only quiet mode §4.8: no URI, no ASCII box on stdout)",
+        "png_written_quiet": "  PNG written: {path} (send this image to the user; delete it when done)",
+        "press_enter": "\n  press Enter to clear…",
+        "help_desc": "Generate a HermesPaw pairing payload (self-check first; no code if the check fails; "
+                     "single tier = default profile + master key; zero dependencies)",
+        "help_apply": "Reconcile the four checks (enabled/host/key/port), filling in what is missing; "
+                      "when a gateway restart is needed it only tells you, never restarts (idempotent)",
+        "help_list": "List the profiles on this host that can produce a code, with their state",
+        "help_host": "Override the auto-detected address, e.g. 192.0.2.50",
+        "help_name": "Profile display name (defaults to Hermes·<hostname>; optional for --prompt, "
+                     "omit the name line when empty)",
+        "help_once": "Clear the screen on Enter after printing",
+        "help_json": "Print only the URI (no QR; the only mode allowed on a non-TTY)",
+        "help_png": "Also write a PNG (pure Python, no PIL); non-TTY + --png = PNG-only mode: "
+                    "file only, zero URI / zero ASCII on stdout (§4.8 agent flow)",
+        "help_prompt": "Print the HermesPaw onboarding prompt (single-tier template, same as the app's "
+                       "OnboardPage) to paste into Hermes; no code, no config change (§4.8). "
+                       "The template itself is always Simplified Chinese (byte-identical to the app)",
+        "help_no_selftest": "Skip the /v1/models self-check (troubleshooting only)",
+        "help_lang": "Output language: zh (Simplified Chinese, default) or en. "
+                     "Can also be set via HERMESPAW_LANG",
+    },
+}
+
+
+def _detect_lang() -> str:
+    """环境推断：显式 HERMESPAW_LANG 优先，其次 LC_ALL / LC_MESSAGES / LANG；非 en* 一律 zh。"""
+    raw = (os.environ.get("HERMESPAW_LANG")
+           or os.environ.get("LC_ALL")
+           or os.environ.get("LC_MESSAGES")
+           or os.environ.get("LANG")
+           or "")
+    return "en" if raw.strip().lower().startswith("en") else "zh"
+
+
+def set_lang(value: str | None) -> None:
+    global _LANG
+    _LANG = value if value in ("zh", "en") else _detect_lang()
+
+
+def T(key: str, **kw) -> str:
+    """取当前语言的文案；缺 key 时回退中文，再回退 key 本身（缺失可见）。"""
+    table = _MSG.get(_LANG) or _MSG["zh"]
+    s = table.get(key) or _MSG["zh"].get(key) or key
+    return s.format(**kw) if kw else s
+
+
 def die(msg: str) -> "NoReturn":  # type: ignore[name-defined]
     print(f"✗ {msg}", file=sys.stderr)
     sys.exit(1)
@@ -280,14 +484,14 @@ def make_addr_list(addrs: list[str], port: int) -> str:
 
 def render_qr(uri: str) -> None:
     if not SEGNO_OK:
-        print("  （QR 库 segno 不可用，降级：请复制下方 URI 粘贴到任意二维码生成器）")
+        print(T("qr_fallback"))
         return
     _segno.make(uri, error="m").terminal(compact=True)
 
 
 def save_png(uri: str, path: str) -> None:
     if not SEGNO_OK:
-        die("QR 库 segno 不可用，无法生成 PNG（可先 --json 拿 URI）")
+        die(T("png_no_segno"))
     _segno.make(uri, error="m").save(path, scale=5)
 
 
@@ -311,7 +515,7 @@ def ensure_key(path: Path, label: str, log=print) -> str:
         if key_lines:
             last = key_lines[-1].strip()[len("API_SERVER_KEY="):].strip("'\"")
         if len(last) >= 16:
-            log(f"  {label} key 可用（≥16 字符），保留现值（不重写）")
+            log(T("key_keep", label=label))
             return "keep"
         # 弱/空 key → 覆盖（先备份；保留其它行，去掉全部旧 key 行，新 key 追加到末尾）
         bak = _backup(path)
@@ -323,14 +527,14 @@ def ensure_key(path: Path, label: str, log=print) -> str:
         body = (body + "\n" if body else "") + f"API_SERVER_KEY={new_key}\n"
         path.write_text(body, encoding="utf-8")
         os.chmod(path, 0o600)
-        log(f"  ⚠️ 现存 {label} key 不可用（<16 字符），已用新 key 覆盖（旧文件备份 {bak.name}）")
-        log(f"     此前发出的所有{label}码作废，需重发")
+        log(T("key_overwrite", label=label, bak=bak.name))
+        log(T("key_overwrite_tail", label=label))
         return "overwrite"
     # 无 .env → 新建
     new_key = secrets.token_hex(32)
     path.write_text(f"API_SERVER_KEY={new_key}\n", encoding="utf-8")
     os.chmod(path, 0o600)
-    log(f"  {label} .env 不存在，已新建 API_SERVER_KEY（64 位 hex，chmod 600）")
+    log(T("key_new", label=label))
     return "new"
 
 
@@ -354,14 +558,11 @@ def cmd_apply() -> int:
     # 1) 读当前状态
     enabled, host, port, recognized = read_api_server(cfg)
     if not recognized:
-        die(f"config.yaml 结构无法识别（{cfg}）。请手动执行：\n"
-            "  hermes config set platforms.api_server.enabled true\n"
-            "  hermes config set platforms.api_server.extra.host 0.0.0.0\n"
-            "  hermes config set platforms.api_server.extra.port 8377")
+        die(T("apply_cfg_unparsed", cfg=cfg))
     key = read_env_key(env)
     listening = port_listening(port)
-    print(f"  现状: enabled={enabled}  host={host}  port={port}  "
-          f"key={'可用' if len(key) >= 16 else '缺失/弱' if key else '缺失'}  listening={listening}")
+    kdesc = T("k_ok") if len(key) >= 16 else (T("k_weak") if key else T("k_missing"))
+    print(T("apply_now", enabled=enabled, host=host, port=port, key=kdesc, listening=listening))
 
     changed: list[str] = []
     hermes = _hermes_cli()
@@ -369,26 +570,24 @@ def cmd_apply() -> int:
     # 2) enabled
     if not enabled:
         if not hermes:
-            die("platforms.api_server.enabled 不是 true，且本机找不到 hermes CLI。"
-                "请手动执行: hermes config set platforms.api_server.enabled true")
+            die(T("apply_no_cli_enabled"))
         r = subprocess.run(hermes + ["config", "set", "platforms.api_server.enabled", "true"],
                            capture_output=True, text=True)
         if r.returncode != 0:
-            die(f"hermes config set enabled 失败: {r.stdout.strip()} {r.stderr.strip()}")
+            die(T("apply_set_enabled_fail", out=(r.stdout.strip() + " " + r.stderr.strip()).strip()))
         changed.append("platforms.api_server.enabled=true")
-        print("  ✓ 已设置 platforms.api_server.enabled=true")
+        print(T("apply_enabled_ok"))
 
     # 3) host
     if host in ("127.0.0.1", "localhost", "::1"):
         if not hermes:
-            die(f"host={host} 只绑回环，手机连不上，且本机找不到 hermes CLI。"
-                "请手动执行: hermes config set platforms.api_server.extra.host 0.0.0.0")
+            die(T("apply_no_cli_host", host=host))
         r = subprocess.run(hermes + ["config", "set", "platforms.api_server.extra.host", "0.0.0.0"],
                            capture_output=True, text=True)
         if r.returncode != 0:
-            die(f"hermes config set host 失败: {r.stdout.strip()} {r.stderr.strip()}")
+            die(T("apply_set_host_fail", out=(r.stdout.strip() + " " + r.stderr.strip()).strip()))
         changed.append("platforms.api_server.extra.host=0.0.0.0")
-        print(f"  ✓ 已设置 host 0.0.0.0（原 {host}，只绑回环手机连不上）")
+        print(T("apply_host_ok", host=host))
 
     # 4) key（三分支幂等；key 改动后运行中的网关内存里仍是旧 key，必须重启才生效）
     if len(key) < 16:
@@ -400,19 +599,20 @@ def cmd_apply() -> int:
     enabled2, host2, port2, _ = read_api_server(cfg)
     listening2 = port_listening(port2)
     ok = enabled2 and host2 not in ("127.0.0.1", "localhost", "::1") and len(read_env_key(env)) >= 16
-    print(f"  复验: enabled={enabled2}  host={host2}  port={port2}  key可用={len(read_env_key(env)) >= 16}  listening={listening2}")
+    kdesc2 = T("k_ok") if len(read_env_key(env)) >= 16 else T("k_missing")
+    print(T("apply_reverify", enabled=enabled2, host=host2, port=port2, key=kdesc2, listening=listening2))
 
     # 6) 收尾提示（任何改动都需重启网关才生效——config 与 .env 均为启动时加载）
     if changed:
-        print(f"\n  ⚠ 已写入 {len(changed)} 项改动，需人工重启网关才生效（本脚本绝不自己重启）：")
+        print(T("apply_changed", n=len(changed)))
         # 提示串运行时拼接：Hermes 终端生命周期守卫静态扫全文，连续形态会被误判成
         # 「脚本要操作网关」而拦下整条命令（2026-11-20 实测误伤）。语义不变。
         print("      " + "hermes gateway " + "restart")
         return 2
     if not listening2 or not ok:
-        print("\n  ⚠ 端口未在听或状态未就绪 → " + "hermes gateway " + "restart" + "（配置改了网关未重启，或网关未运行）")
+        print(T("apply_port_not_ready", cmd=("hermes gateway " + "restart")))
         return 2
-    print("\n  ✓ 四态齐备，可以直接出码：hermes-paw-qr --list 然后 hermes-paw-qr")
+    print(T("apply_all_good"))
     return 0
 
 
@@ -424,7 +624,7 @@ def cmd_list() -> int:
     listening = port_listening(port)
     print()
     print(f"  api_server : enabled={enabled}  host={host}  port={port}  listening={listening}")
-    print(f"  {'profile':<10}{'角色':<8}{'key':<10}{'可出码'}")
+    print(f"  {'profile':<10}{T('list_col_role'):<8}{'key':<10}{T('list_col_cangen')}")
     homes = [("default", profile_home("default"))]
     pdir = HERMES_HOME / "profiles"
     if pdir.is_dir():
@@ -433,13 +633,13 @@ def cmd_list() -> int:
                 homes.append((d.name, d))
     for name, home in homes:
         key = read_env_key(home / ".env")
-        role = "主 key" if name == "default" else "—"
-        kdesc = f"{len(key)}字符" if key else "缺失"
-        ok = "是" if (len(key) >= 16 and enabled and listening) else "否"
+        role = T("list_role_main") if name == "default" else T("list_dash")
+        kdesc = T("list_key_chars", n=len(key)) if key else T("list_key_missing")
+        ok = T("list_yes") if (len(key) >= 16 and enabled and listening) else T("list_no")
         print(f"  {name:<10}{role:<8}{kdesc:<10}{ok}")
     print()
-    print("  生成: hermes-paw-qr --apply         → 四态对账（enabled/host/key/端口）")
-    print("        hermes-paw-qr                 → 出码（单一档 = default profile + 主 key）")
+    print(T("list_gen_apply"))
+    print(T("list_gen_plain"))
     print()
     return 0
 
@@ -455,8 +655,7 @@ def guard_tty(args: argparse.Namespace) -> None:
     if not sys.stdout.isatty():
         if args.png:
             return  # PNG-only quiet mode: file written, stdout stays clean
-        die("检测到非交互终端（非 TTY），拒绝出码（防 key 进日志）。"
-            "脚本内用 --json（只出 URI）、--png（只写文件），或到交互终端运行。")
+        die(T("tty_refuse"))
 
 
 def cmd_gen(args: argparse.Namespace) -> int:
@@ -471,9 +670,7 @@ def cmd_gen(args: argparse.Namespace) -> int:
     # terminal 日志完整吞下（提示词第 4 步"通道不能发图改 --json"与 --png 合成一跑
     # 是最自然的偷懒路径），打穿对抗性安全性质。fail-closed 拒绝组合，逼二选一。
     if args.png and args.json:
-        die("--json 与 --png 互斥（§4.8 D1）：--png 非 TTY 静默模式 stdout 零 URI，"
-            "不能同时输出 JSON。二选一：--png <路径>（PNG 落盘、stdout 干净）"
-            "或 --json（URI 独占 stdout，仅文本回退通道用）。")
+        die(T("json_png_exclusive"))
 
     def log(*a):
         print(*a, file=sys.stderr if (_json_mode or _quiet_png) else sys.stdout)
@@ -486,39 +683,37 @@ def cmd_gen(args: argparse.Namespace) -> int:
     # 预检 1：profile 存在
     phome = profile_home(profile)
     if not (phome / "config.yaml").exists():
-        die(f"profile '{profile}' 不存在（{phome}/config.yaml 缺失）。"
-            f"先 hermes profile create {profile} --clone")
+        die(T("profile_missing", profile=profile, cfg=(str(phome) + "/config.yaml")))
 
     # 预检 2：api_server 配置
     enabled, host, port, recognized = read_api_server(profile_home("default") / "config.yaml")
     if not recognized:
-        die(f"config.yaml 结构无法识别（{profile_home('default') / 'config.yaml'}），请手动核对 ①-③ 配置")
+        die(T("cfg_unparsed_named", cfg=str(profile_home("default") / "config.yaml")))
     problems: list[str] = []
     if not enabled:
-        problems.append("platforms.api_server.enabled 不是 true → 跑 hermes-paw-qr --apply 或手动 hermes config set platforms.api_server.enabled true")
+        problems.append(T("prob_enabled"))
     if host in ("127.0.0.1", "localhost", "::1"):
-        problems.append(f"host={host} 只绑回环，手机连不上 → 跑 hermes-paw-qr --apply 或手动 hermes config set platforms.api_server.extra.host 0.0.0.0")
+        problems.append(T("prob_host", host=host))
     if problems:
-        die("服务端未就绪：\n  - " + "\n  - ".join(problems))
+        die(T("not_ready", problems="\n  - ".join(problems)))
 
     # 预检 3：该 profile 自己的 key
     key = read_env_key(phome / ".env")
     if not key:
-        die(f"profile '{profile}' 没有自己的 API_SERVER_KEY（{phome}/.env）——命名 profile 缺 key 会 401 fail-closed")
+        die(T("no_profile_key", profile=profile, env=(str(phome) + "/.env")))
     if len(key) < 16:
-        die(f"profile '{profile}' 的 API_SERVER_KEY 只有 {len(key)} 字符，Hermes 要求 ≥16")
+        die(T("key_too_short", profile=profile, n=len(key)))
     # 预检 4：端口在听
     if not port_listening(port):
-        die(f"{port} 端口没有监听 → 网关未加载 api_server（配置改了要 " + "hermes gateway " + "restart" + "；"
-            f"本脚本不自己重启）")
+        die(T("port_not_listening", port=port, cmd=("hermes gateway " + "restart")))
 
     # 预检 5：Bearer 自检
     if not args.no_selftest:
         code, why = selftest(port, key, profile)
         if code != 200:
-            die(f"/v1/models 自检失败（{code}）：{why}")
+            die(T("selftest_fail", code=code, why=why))
     else:
-        why = "已跳过自检（--no-selftest）"
+        why = T("skipped_selftest")
 
     # 地址
     if args.host:
@@ -526,7 +721,7 @@ def cmd_gen(args: argparse.Namespace) -> int:
     else:
         addrs = detect_lan_addrs()
         if not addrs:
-            die("探测不到局域网地址（只有 loopback/docker）。用 --host 指定")
+            die(T("no_lan_addr"))
     addr = make_addr_list(addrs, port)
 
     name = args.name or f"Hermes·{os.uname().nodename}"
@@ -535,37 +730,38 @@ def cmd_gen(args: argparse.Namespace) -> int:
 
     # P1-r4-3 (2026-11-16 170 审爷 Round 4, 主控 c+a 轴): 出码审计行——只走 stderr
     # （不进 stdout，stdout 契约不变：--json = URI 独占），不随 --once 清屏；事后自证。
-    print(f"主 key 码已生成 · {time.strftime('%Y-%m-%dT%H:%M:%S%z')} · 用户 {os.environ.get('USER', '?')} · 主机 {socket.gethostname()}", file=sys.stderr)
+    print(T("gen_banner", ts=time.strftime('%Y-%m-%dT%H:%M:%S%z'),
+            user=(os.environ.get('USER', '?') + ' · ' + socket.gethostname())), file=sys.stderr)
 
     if args.json:
         print(uri)
     elif _quiet_png:
-        log(f"  Profile: {profile} (/p/{profile}/)  档案名: {name}  地址: {addrs[0]}:{port}  校验: {why}")
-        log("  （PNG-only 静默模式 §4.8：stdout 零 URI/零 ASCII）")
+        log(T("quiet_line", profile=profile, name=name, addr=(addrs[0] + ":" + str(port)), why=why))
+        log(T("quiet_note"))
     else:
         print()
-        print("  ┌─ HermesPaw 扫码配置 " + "─" * 22)
+        print(T("box_header"))
         print(f"  │ Profile  : {profile}  (/p/{profile}/)")
-        print(f"  │ 档案名   : {name}")
-        print(f"  │ 地址     : {addrs[0]}:{port}")
+        print(T("box_name", name=name))
+        print(T("box_addr", addr=(addrs[0] + ":" + str(port))))
         if len(addrs) > 1:
-            print(f"  │ 其它地址 : {', '.join(f'{a}:{port}' for a in addrs[1:])}（均已写入二维码，App 自动探测）")
-        print(f"  │ 校验     : {why}")
+            print(T("box_alt", addrs=", ".join(f"{a}:{port}" for a in addrs[1:])))
+        print(T("box_verify", why=why))
         print("  └" + "─" * 46)
         print()
         render_qr(uri)
         print()
-        print("  扫不开 / 不在一起时，把这行发给对方粘到 App 设置页：")
+        print(T("paste_hint"))
         print(f"  {uri}")
         print()
-        print("  ⚠ 这一行就是网关主凭据（default profile key），别截图、别发群；用完按回车清屏。")
+        print(T("cred_warning"))
 
     if args.png:
         save_png(uri, args.png)
         if _quiet_png:
-            log(f"  PNG 已写出: {args.png}（把此图片文件发给用户，用完请删）")
+            log(T("png_written_quiet", path=args.png))
         else:
-            print(f"  PNG 已写出: {args.png}（给不在一起的人发图用，用完请删）")
+            print(T("png_written", path=args.png))
 
     # P2-r5-2（T1 轮遗留 2026-11-17）：--json 是脚本消费模式（stdout 被
     # agent/脚本读走），input() 等 stdin 可能无限阻塞；JSON 模式跳过清屏等待与 clear
@@ -608,28 +804,35 @@ def cmd_prompt(args: argparse.Namespace) -> int:
     return 0
 
 
+def _prescan_lang(argv: list[str]) -> str | None:
+    """在 argparse 之前扫出 --lang，好让 --help 本身也按所选语言渲染。"""
+    for i, a in enumerate(argv):
+        if a == "--lang" and i + 1 < len(argv):
+            return argv[i + 1]
+        if a.startswith("--lang="):
+            return a.split("=", 1)[1]
+    return None
+
+
 def main() -> int:
-    ap = argparse.ArgumentParser(
-        description="生成 HermesPaw 扫码配置串（先自检，不通不出码；单一档码 = default profile + 主 key；零依赖）")
-    ap.add_argument("--apply", action="store_true",
-                    help="四态对账：enabled/host/key/端口，缺啥补啥；需重启网关时只通知不重启（幂等）")
-    ap.add_argument("--list", action="store_true", help="列出本机可出码的 profile 及状态")
-    ap.add_argument("--host", help="覆盖自动探测的地址，如 192.0.2.50")
-    ap.add_argument("--name", help="档案显示名（出码默认 Hermes·<主机名>；--prompt 可选，空则省略档案名行）")
-    ap.add_argument("--once", action="store_true", help="打印后按回车清屏")
-    ap.add_argument("--json", action="store_true", help="只输出 URI（不打印二维码；非 TTY 唯一允许模式）")
-    ap.add_argument("--png", metavar="PATH",
-                    help="同时输出 PNG（纯 Python 生成，无 PIL）；非 TTY + --png = "
-                         "PNG-only 模式：只写文件，stdout 零 URI/零 ASCII（§4.8 agent 流程）")
-    ap.add_argument("--prompt", action="store_true",
-                    help="打印 HermesPaw 接入提示词（单一档模板，与 App OnboardPage 同一模板），"
-                         "贴给 Hermes 执行；不出码、不改配置（§4.8）")
-    ap.add_argument("--no-selftest", action="store_true", help="跳过 /v1/models 自检（仅排障用）")
+    set_lang(_prescan_lang(sys.argv[1:]))
+    ap = argparse.ArgumentParser(description=T("help_desc"))
+    ap.add_argument("--apply", action="store_true", help=T("help_apply"))
+    ap.add_argument("--list", action="store_true", help=T("help_list"))
+    ap.add_argument("--host", help=T("help_host"))
+    ap.add_argument("--name", help=T("help_name"))
+    ap.add_argument("--once", action="store_true", help=T("help_once"))
+    ap.add_argument("--json", action="store_true", help=T("help_json"))
+    ap.add_argument("--png", metavar="PATH", help=T("help_png"))
+    ap.add_argument("--prompt", action="store_true", help=T("help_prompt"))
+    ap.add_argument("--no-selftest", action="store_true", help=T("help_no_selftest"))
+    ap.add_argument("--lang", choices=("zh", "en"), help=T("help_lang"))
     args = ap.parse_args()
+    set_lang(args.lang)  # 显式 --lang 覆盖环境推断
     # P1-r2-2 (170 审爷 r2): --json 仅用于 gen（出码 URI）；与 --prompt/--apply/--list 不兼容。
     # 此前非 gen 命令下 --json 静默 no-op（实测 --apply --json --png rc=0 照跑），误导 agent；改为 fail-closed。
     if args.json and (args.prompt or args.apply or args.list):
-        die("--json 仅用于 gen（出码 URI）；与 --prompt/--apply/--list 不兼容（§4.8 P1-r2-2）")
+        die(T("json_only_gen"))
 
     if args.prompt:
         return cmd_prompt(args)

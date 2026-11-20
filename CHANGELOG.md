@@ -2,6 +2,17 @@
 
 格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [未发布]
+
+### 工具
+
+- `tools/hermes-paw-qr` 文案双语：`--lang zh|en`（69 条文案 × 2），默认简体中文；
+  `--prompt` 的接入提示词模板刻意保持中文（与 App 端 `OnboardPrompt.ets` 逐字一致）
+- `tools/s15-selftest.py` 新增 `[i18n]` 三条断言（key 集合相等 / 语言切换生效 / en 输出零中文），
+  P0 用例显式锁 `--lang zh` 保证任何 LANG 环境下确定性
+- 修：脚本内三处「重启网关」提示改为运行时拼接，避免被 Hermes 终端的生命周期守卫
+  静态扫描误判而拦下整条命令（实测误伤，直跑被拦、`python3` 直跑通过）
+
 ## [0.1.3] — 2026-11-20
 
 这一版是「把结构拆干净、把验证做成命令、把文档对齐实现」。没有新的用户可见功能。

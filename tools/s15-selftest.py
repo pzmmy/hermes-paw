@@ -83,7 +83,7 @@ def check_sync() -> int:
 def check_p0_mutex() -> int:
     """P0-1 regression: --json 与 --png 必须互斥（stdout 零 URI 契约）。P1-r2-1：显式校验 rc==1。P1-r4-4b：'互斥'断言在 stderr 通道（die() 输出通道）。"""
     r = subprocess.run(
-        [sys.executable, str(QR), "--json", "--png", "/tmp/s15-p0-mutex.png"],
+        [sys.executable, str(QR), "--lang", "zh", "--json", "--png", "/tmp/s15-p0-mutex.png"],
         capture_output=True, text=True, stdin=subprocess.DEVNULL,
     )
     # P1-r4-4b (2026-11-16 170 审爷 Round 4)：断言只查 stderr——die() 的拒绝输出
@@ -96,11 +96,49 @@ def check_p0_mutex() -> int:
     return 1
 
 
+def check_i18n() -> int:
+    """文案双语：zh/en 两张表的 key 集合必须完全一致，且 --lang en 的可见输出零中文。
+    只锁这两条，不锁具体措辞（措辞会改，缺 key/漏翻不会自己现形）。"""
+    import importlib.util
+    spec = importlib.util.spec_from_loader(
+        "hpqr", importlib.machinery.SourceFileLoader("hpqr", str(QR)))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)  # 只加载定义，不执行 main()
+
+    zh = set(mod._MSG["zh"].keys())
+    en = set(mod._MSG["en"].keys())
+    rc = 0
+    if zh == en:
+        print(f"[i18n] OK   文案表 key 一致（{len(zh)} 条）")
+    else:
+        rc = 1
+        print(f"[i18n] FAIL key 不一致 → 仅 zh 有: {sorted(zh - en)} / 仅 en 有: {sorted(en - zh)}")
+
+    zh_out = subprocess.run([sys.executable, str(QR), "--lang", "zh", "--list"],
+                            capture_output=True, text=True).stdout
+    en_out = subprocess.run([sys.executable, str(QR), "--lang", "en", "--list"],
+                            capture_output=True, text=True).stdout
+    if "角色" in zh_out and "role" in en_out:
+        print("[i18n] OK   --lang zh/en 各出对应语言")
+    else:
+        rc = 1
+        print("[i18n] FAIL --lang 未生效（zh 缺 角色 或 en 缺 role）")
+
+    han = [c for c in en_out if "\u4e00" <= c <= "\u9fff"]
+    if not han:
+        print("[i18n] OK   --lang en 输出零中文")
+    else:
+        rc = 1
+        print(f"[i18n] FAIL --lang en 输出仍含中文: {''.join(han[:10])}")
+    return rc
+
+
 def main() -> int:
     print("=== S1.5 self-test (P1-A3 模板同步 + P0-1 脚本行为回归) ===")
     rc = 0
     rc |= check_sync()
     rc |= check_p0_mutex()
+    rc |= check_i18n()
     print("S15_SELFTEST:", "PASS" if rc == 0 else "FAIL")
     return rc
 
