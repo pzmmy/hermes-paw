@@ -1,0 +1,4 @@
+# Windows .bat files MUST check out with CRLF (cmd.exe requirement).
+# This attribute takes precedence over the consumer's core.autocrlf setting,
+# so a fresh clone on any machine gets CRLF .bat files.
+*.bat text eol=crlf

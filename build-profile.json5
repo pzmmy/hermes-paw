@@ -1,0 +1,48 @@
+{
+  "app": {
+    "signingConfigs": [],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        // API 12 minimum target — intentional (batch2-r4): the deprecation
+        // migrations (decode->decodeToString etc.) are API 12+ APIs, so the
+        // app is designed to run from API 12 up. Kept at 5.0.0(12) rather
+        // than bumping to 6.0.0 (batch3 P2-r5-02 closure).
+        "compatibleSdkVersion": "5.0.0(12)",
+        // targetSdkVersion: intentionally NOT set (batch3, engine P2) —
+        // its value must match the SDK API level installed on the master
+        // build machine; add it there once the API level is confirmed.
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug"
+      },
+      {
+        "name": "release"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}

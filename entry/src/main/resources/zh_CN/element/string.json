@@ -1,0 +1,1384 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "HermesPaw 入口模块"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "Hermes Agent 鸿蒙原生客户端"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "HermesPaw"
+    },
+    {
+      "name": "camera_reason",
+      "value": "用于扫描管理员提供的 HermesPaw 配置二维码"
+    },
+    {
+      "name": "mic_reason",
+      "value": "用于语音输入：将语音识别为文字后填入输入框"
+    },
+    {
+      "name": "loading",
+      "value": "加载中…"
+    },
+    {
+      "name": "back",
+      "value": "返回"
+    },
+    {
+      "name": "no_title",
+      "value": "（无标题）"
+    },
+    {
+      "name": "refreshing",
+      "value": "刷新中…"
+    },
+    {
+      "name": "refresh",
+      "value": "刷新"
+    },
+    {
+      "name": "close_panel",
+      "value": "✕ 关闭"
+    },
+    {
+      "name": "diag_hint",
+      "value": "可在「设置」中对已保存的服务做连接测试，定位网络或 Token 问题"
+    },
+    {
+      "name": "retry",
+      "value": "重试"
+    },
+    {
+      "name": "conn_test",
+      "value": "连接测试"
+    },
+    {
+      "name": "new_chat",
+      "value": "+ 新对话"
+    },
+    {
+      "name": "server_sessions_chip",
+      "value": "📋 服务端会话"
+    },
+    {
+      "name": "server_sessions_title",
+      "value": "服务端会话"
+    },
+    {
+      "name": "img_label",
+      "value": "(图片)"
+    },
+    {
+      "name": "approval_title",
+      "value": "⚠ 需要审批"
+    },
+    {
+      "name": "appr_once",
+      "value": "本次"
+    },
+    {
+      "name": "appr_session",
+      "value": "本会话"
+    },
+    {
+      "name": "appr_always",
+      "value": "固定"
+    },
+    {
+      "name": "appr_deny",
+      "value": "拒绝"
+    },
+    {
+      "name": "act_copy",
+      "value": "复制"
+    },
+    {
+      "name": "act_resend",
+      "value": "重发"
+    },
+    {
+      "name": "act_stop_gen",
+      "value": "停止生成"
+    },
+    {
+      "name": "act_handle_appr",
+      "value": "处理审批"
+    },
+    {
+      "name": "act_quote",
+      "value": "引用"
+    },
+    {
+      "name": "act_delete",
+      "value": "删除"
+    },
+    {
+      "name": "replying",
+      "value": "回复"
+    },
+    {
+      "name": "delete_msg_title",
+      "value": "删除消息"
+    },
+    {
+      "name": "delete_msg_confirm",
+      "value": "确定删除这条消息吗？服务器副本可能在重新拉取后重现。"
+    },
+    {
+      "name": "voice_recognizing",
+      "value": "🔴 识别中…"
+    },
+    {
+      "name": "input_ph",
+      "value": "输入消息…"
+    },
+    {
+      "name": "input_ph_busy",
+      "value": "运行中…（可插话）"
+    },
+    {
+      "name": "btn_stop",
+      "value": "停止"
+    },
+    {
+      "name": "btn_steer",
+      "value": "插话"
+    },
+    {
+      "name": "btn_send",
+      "value": "发送"
+    },
+    {
+      "name": "no_server_sessions",
+      "value": "（无服务端会话）"
+    },
+    {
+      "name": "onb_welcome",
+      "value": "欢迎使用 Hermes 客户端"
+    },
+    {
+      "name": "onb_sub",
+      "value": "接入你的 Hermes 网关后即可与助手对话。\n推荐：粘贴配置串（最快）。"
+    },
+    {
+      "name": "onb_paste",
+      "value": "粘贴配置串接入（推荐）"
+    },
+    {
+      "name": "onb_delegate",
+      "value": "让 Hermes 代配置（首次推荐）"
+    },
+    {
+      "name": "scan_title",
+      "value": "扫码配置服务器"
+    },
+    {
+      "name": "scan_camera",
+      "value": "相机扫码"
+    },
+    {
+      "name": "scan_album",
+      "value": "相册识码"
+    },
+    {
+      "name": "scan_paste",
+      "value": "粘贴"
+    },
+    {
+      "name": "scan_paste_ph",
+      "value": "粘贴 hermespaw://setup/1?..."
+    },
+    {
+      "name": "scan_no_key_hint",
+      "value": "没有配置串？它是以 hermespaw:// 开头的链接，由 Hermes 服务端生成后粘贴到这里。"
+    },
+    {
+      "name": "scan_parse",
+      "value": "解析配置串"
+    },
+    {
+      "name": "scan_probing",
+      "value": "正在逐个探测网关地址（每个 2s 超时）…"
+    },
+    {
+      "name": "scan_parsing",
+      "value": "正在解析…"
+    },
+    {
+      "name": "scan_confirm_title",
+      "value": "扫码结果确认"
+    },
+    {
+      "name": "transport_lan",
+      "value": "传输：局域网（lan）"
+    },
+    {
+      "name": "show_hide",
+      "value": "隐藏"
+    },
+    {
+      "name": "show_show",
+      "value": "显示"
+    },
+    {
+      "name": "scan_gateway_hint",
+      "value": "网关地址（点选要保存的可达地址）"
+    },
+    {
+      "name": "scan_saving",
+      "value": "保存中…"
+    },
+    {
+      "name": "scan_save",
+      "value": "保存并激活"
+    },
+    {
+      "name": "settings_title",
+      "value": "服务器设置"
+    },
+    {
+      "name": "settings_first_onboard",
+      "value": "首次接入"
+    },
+    {
+      "name": "settings_scan",
+      "value": "扫码配置"
+    },
+    {
+      "name": "settings_profile_note",
+      "value": "仅支持扫码添加，不支持手输"
+    },
+    {
+      "name": "settings_saved",
+      "value": "已保存的服务器"
+    },
+    {
+      "name": "settings_none",
+      "value": "暂无，请扫码添加"
+    },
+    {
+      "name": "settings_no_url",
+      "value": "未配置地址"
+    },
+    {
+      "name": "net_tailnet",
+      "value": "网络：Tailscale 尾网"
+    },
+    {
+      "name": "net_lan",
+      "value": "网络：局域网"
+    },
+    {
+      "name": "settings_active",
+      "value": "已激活"
+    },
+    {
+      "name": "diag_busy",
+      "value": "诊断中…"
+    },
+    {
+      "name": "diag_not_configured",
+      "value": "尚未配置地址"
+    },
+    {
+      "name": "diag_bad_url",
+      "value": "地址格式不正确（需以 http:// 开头）"
+    },
+    {
+      "name": "diag_no_token",
+      "value": "服务器可达，但未配置 Token — 发消息/开会话会被拒（401）。请重新扫码导入含有效 Token 的二维码。"
+    },
+    {
+      "name": "diag_auth_fail",
+      "value": "服务器可达，但认证失败（401）— Token 不正确。请重新扫码导入。"
+    },
+    {
+      "name": "diag_ok",
+      "value": "连接成功 ✓ 认证通过（Token 有效）"
+    },
+    {
+      "name": "diag_ok_check_err",
+      "value": "连接成功 ✓ 认证检查异常，建议重试"
+    },
+    {
+      "name": "diag_ok_check_fail",
+      "value": "连接成功 ✓ 认证检查失败"
+    },
+    {
+      "name": "diag_fail",
+      "value": "连接失败"
+    },
+    {
+      "name": "diag_token_load_fail",
+      "value": "读取 Token 失败"
+    },
+    {
+      "name": "diag",
+      "value": "诊断"
+    },
+    {
+      "name": "activate",
+      "value": "激活"
+    },
+    {
+      "name": "delete",
+      "value": "删除"
+    },
+    {
+      "name": "settings_token_note",
+      "value": "Token 加密存储。"
+    },
+    {
+      "name": "onb_prompt",
+      "value": "把提示词发给你的 Hermes（CLI / 企业微信 / Web 均可），它会在服务器上自动完成配置并发回二维码；你只需最后扫一下码。"
+    },
+    {
+      "name": "onb_profile_label",
+      "value": "档案显示名（可选）"
+    },
+    {
+      "name": "onb_profile_ph",
+      "value": "我的 Hermes"
+    },
+    {
+      "name": "onb_prompt_title",
+      "value": "接入提示词（长按复制，贴给你的 Hermes）"
+    },
+    {
+      "name": "onb_scan_btn",
+      "value": "收到二维码，去扫码"
+    },
+    {
+      "name": "tab_chat",
+      "value": "对话"
+    },
+    {
+      "name": "tab_settings",
+      "value": "设置"
+    },
+    {
+      "name": "tab_about",
+      "value": "关于"
+    },
+    {
+      "name": "running_elapsed_fmt",
+      "value": " 运行中 · 已用时 %s 秒"
+    },
+    {
+      "name": "polling_result_fmt",
+      "value": " 正在获取结果 · 已用时 %s 秒"
+    },
+    {
+      "name": "filter_hide_empty_fmt",
+      "value": "隐藏空会话（%s）"
+    },
+    {
+      "name": "filter_show_empty_fmt",
+      "value": "显示空会话（%s）"
+    },
+    {
+      "name": "filter_empty_hidden_fmt",
+      "value": "（已隐藏 %s 个空会话）"
+    },
+    {
+      "name": "name_row_fmt",
+      "value": "名称：%s"
+    },
+    {
+      "name": "profile_row_fmt",
+      "value": "Profile：%s"
+    },
+    {
+      "name": "key_row_fmt",
+      "value": "密钥：%s"
+    },
+    {
+      "name": "stop_dialog_title",
+      "value": "停止运行？"
+    },
+    {
+      "name": "stop_dialog_msg",
+      "value": "将停止当前运行。已生成的部分会保留，未生成的部分不再继续。"
+    },
+    {
+      "name": "cancel",
+      "value": "取消"
+    },
+    {
+      "name": "appr_session_approve",
+      "value": "本会话批准"
+    },
+    {
+      "name": "appr_always_approve",
+      "value": "固定批准"
+    },
+    {
+      "name": "thinking_collapse",
+      "value": "💭 思考过程（点击收起）"
+    },
+    {
+      "name": "thinking_expand",
+      "value": "💭 思考过程（点击展开）"
+    },
+    {
+      "name": "delete_dialog_title",
+      "value": "删除档案"
+    },
+    {
+      "name": "delete_dialog_msg_fmt",
+      "value": "将删除「%s」及其加密 Token。如需重新接入，请再次扫码。"
+    },
+    {
+      "name": "session_count_fmt",
+      "value": "%s 条"
+    },
+    {
+      "name": "approval_type_fmt",
+      "value": "类型：%s — 请确认后操作"
+    },
+    {
+      "name": "approval_countdown_fmt",
+      "value": "审批倒计时 %s 秒（超时自动拒绝）"
+    },
+    {
+      "name": "settings_group_general",
+      "value": "通用"
+    },
+    {
+      "name": "settings_group_advanced",
+      "value": "高级"
+    },
+    {
+      "name": "lang_section",
+      "value": "界面语言"
+    },
+    {
+      "name": "lang_follow_system",
+      "value": "跟随系统"
+    },
+    {
+      "name": "lang_zh",
+      "value": "简体中文"
+    },
+    {
+      "name": "lang_en",
+      "value": "English"
+    },
+    {
+      "name": "accent_section",
+      "value": "强调色（下次启动生效）"
+    },
+    {
+      "name": "accent_restart_hint",
+      "value": "下次启动生效"
+    },
+    {
+      "name": "recover_poll_section",
+      "value": "断流重试间隔"
+    },
+    {
+      "name": "recover_poll_hint",
+      "value": "1s"
+    },
+    {
+      "name": "jobs_section",
+      "value": "定时任务"
+    },
+    {
+      "name": "job_disabled",
+      "value": "已停用"
+    },
+    {
+      "name": "scan_no_gateway",
+      "value": "没有可用的网关（全部不可达或认证失败）"
+    },
+    {
+      "name": "login_title",
+      "value": "登录 Hermes"
+    },
+    {
+      "name": "login_sub_fmt",
+      "value": "登录「%s」以使用对话功能"
+    },
+    {
+      "name": "login_email_ph",
+      "value": "邮箱地址"
+    },
+    {
+      "name": "login_send",
+      "value": "发送验证码"
+    },
+    {
+      "name": "login_resend_fmt",
+      "value": "%s 秒后重发"
+    },
+    {
+      "name": "login_code_ph",
+      "value": "6 位验证码"
+    },
+    {
+      "name": "login_verify",
+      "value": "验证并登录"
+    },
+    {
+      "name": "login_hint",
+      "value": "验证码将发送到你的邮箱，5 分钟内有效"
+    },
+    {
+      "name": "login_chat_gate_title",
+      "value": "需要登录"
+    },
+    {
+      "name": "login_chat_gate_msg",
+      "value": "该网关要求登录后才能使用对话"
+    },
+    {
+      "name": "login_chat_gate_btn",
+      "value": "去登录"
+    },
+    {
+      "name": "settings_group_security",
+      "value": "安全信息"
+    },
+    {
+      "name": "security_key_label",
+      "value": "网关 Key"
+    },
+    {
+      "name": "security_key_none",
+      "value": "未配置"
+    },
+    {
+      "name": "security_key_open",
+      "value": "免鉴权（未配置 Key）"
+    },
+    {
+      "name": "security_key_configured",
+      "value": "已配置"
+    },
+    {
+      "name": "security_key_verified",
+      "value": "已配置（已验证）"
+    },
+    {
+      "name": "settings_group_about",
+      "value": "关于"
+    },
+    {
+      "name": "about_app_version",
+      "value": "App 版本"
+    },
+    {
+      "name": "about_build",
+      "value": "构建号"
+    },
+    {
+      "name": "about_gateway_version",
+      "value": "hermes-agent 版本"
+    },
+    {
+      "name": "about_gateway_version_loading",
+      "value": "获取中…"
+    },
+    {
+      "name": "about_gateway_version_na",
+      "value": "未提供"
+    },
+    {
+      "name": "about_gateway_addr",
+      "value": "网关地址"
+    },
+    {
+      "name": "about_gateway_addr_na",
+      "value": "未配置"
+    },
+    {
+      "name": "about_api_contract",
+      "value": "API 契约版本"
+    },
+    {
+      "name": "settings_group_opensource",
+      "value": "开源信息"
+    },
+    {
+      "name": "os_license",
+      "value": "许可证"
+    },
+    {
+      "name": "os_license_value",
+      "value": "MIT"
+    },
+    {
+      "name": "os_third_party",
+      "value": "第三方组件"
+    },
+    {
+      "name": "os_third_party_none",
+      "value": "无（零依赖实现）"
+    },
+    {
+      "name": "os_ack",
+      "value": "开源致谢"
+    },
+    {
+      "name": "os_ack_value",
+      "value": "Hermes Agent（Nous Research）· HarmonyOS 系统能力（零第三方库）"
+    },
+    {
+      "name": "os_license_view",
+      "value": "查看全文"
+    },
+    {
+      "name": "os_license_collapse",
+      "value": "收起"
+    },
+    {
+      "name": "db_init_failed_fmt",
+      "value": "数据库初始化失败：%s"
+    },
+    {
+      "name": "init_failed_fmt",
+      "value": "初始化失败：%s"
+    },
+    {
+      "name": "load_failed_fmt",
+      "value": "加载失败：%s"
+    },
+    {
+      "name": "boot_error_no_server",
+      "value": "未配置服务器：请到设置页填写地址与 Token 后激活"
+    },
+    {
+      "name": "m_photo_empty",
+      "value": "图片为空，请换一张"
+    },
+    {
+      "name": "m_photo_exceed_prefix",
+      "value": "图片超过 "
+    },
+    {
+      "name": "m_photo_exceed_suffix",
+      "value": "MB，请换小图"
+    },
+    {
+      "name": "m_photo_compress_over",
+      "value": "图片压缩后仍超限，请换小图"
+    },
+    {
+      "name": "m_photo_data_too_large",
+      "value": "图片数据过大，请换小图"
+    },
+    {
+      "name": "m_photo_process_fail",
+      "value": "图片处理失败："
+    },
+    {
+      "name": "m_setup_empty",
+      "value": "内容为空"
+    },
+    {
+      "name": "m_setup_not_hermespaw",
+      "value": "不是 HermesPaw 配置串（需以 hermespaw:// 开头）。请扫描 Hermes 生成的配置码，其他二维码无效"
+    },
+    {
+      "name": "m_setup_unknown_path",
+      "value": "无法识别的配置路径"
+    },
+    {
+      "name": "m_setup_version_prefix",
+      "value": "配置版本不兼容（setup/"
+    },
+    {
+      "name": "m_setup_version_suffix",
+      "value": "），请使用最新 App"
+    },
+    {
+      "name": "m_setup_missing_n",
+      "value": "配置串缺少名称参数 n"
+    },
+    {
+      "name": "m_setup_missing_a",
+      "value": "配置串缺少地址参数 a"
+    },
+    {
+      "name": "m_setup_missing_k",
+      "value": "配置串缺少密钥参数 k"
+    },
+    {
+      "name": "m_setup_bad_transport",
+      "value": "不支持的传输类型 t="
+    },
+    {
+      "name": "m_setup_blank",
+      "value": "(空)"
+    },
+    {
+      "name": "m_setup_addr_blank",
+      "value": "地址参数 a 为空"
+    },
+    {
+      "name": "m_err_token",
+      "value": "网关 Token 可能错误或已过期，请到设置页重新填写"
+    },
+    {
+      "name": "m_err_server",
+      "value": "服务器异常，请稍后重试"
+    },
+    {
+      "name": "m_err_timeout",
+      "value": "连接超时，请检查服务器是否在线"
+    },
+    {
+      "name": "m_err_no_addr",
+      "value": "服务器地址未配置，请到设置页填写"
+    },
+    {
+      "name": "m_err_unreachable",
+      "value": "无法连接服务器，请检查网络连接与服务器地址"
+    },
+    {
+      "name": "m_err_req_fail_prefix",
+      "value": "请求失败（"
+    },
+    {
+      "name": "m_err_req_fail_suffix",
+      "value": "），请重试"
+    },
+    {
+      "name": "m_err_interrupted",
+      "value": "连接中断，正在尝试恢复…"
+    },
+    {
+      "name": "m_err_login_expired",
+      "value": "登录已失效，请重新登录"
+    },
+    {
+      "name": "m_err_resp_timeout",
+      "value": "响应超时，模型可能正在处理中"
+    },
+    {
+      "name": "m_err_conn",
+      "value": "连接错误，请重试"
+    },
+    {
+      "name": "m_common_or",
+      "value": " 或 "
+    },
+    {
+      "name": "m_about_db_init_fail",
+      "value": "数据库初始化失败："
+    },
+    {
+      "name": "m_chat_no_server",
+      "value": "未配置服务器：请到设置页填写地址与 Token 后激活"
+    },
+    {
+      "name": "m_chat_init_fail",
+      "value": "初始化失败："
+    },
+    {
+      "name": "m_chat_approval_needed",
+      "value": "需要审批"
+    },
+    {
+      "name": "m_chat_approval_once",
+      "value": " — 本次批准"
+    },
+    {
+      "name": "m_chat_untitled_session",
+      "value": "未命名会话"
+    },
+    {
+      "name": "m_chat_delete_title",
+      "value": "删除会话"
+    },
+    {
+      "name": "m_chat_delete_body_suffix",
+      "value": "」将被删除（服务端会话与本地记录一并删除）。"
+    },
+    {
+      "name": "m_chat_current_session",
+      "value": "当前会话"
+    },
+    {
+      "name": "m_chat_count_suffix",
+      "value": " 条"
+    },
+    {
+      "name": "m_chat_received_prefix",
+      "value": "已收到 "
+    },
+    {
+      "name": "m_chat_chars_took",
+      "value": " 字 · 用时 "
+    },
+    {
+      "name": "m_chat_seconds",
+      "value": " 秒"
+    },
+    {
+      "name": "m_chat_receiving",
+      "value": "正在接收… "
+    },
+    {
+      "name": "m_chat_chars_waited",
+      "value": " 字 · 已等待 "
+    },
+    {
+      "name": "m_chat_generating_wait",
+      "value": "结果整段生成中 · 已等待 "
+    },
+    {
+      "name": "m_chat_sent",
+      "value": " 发出"
+    },
+    {
+      "name": "m_chat_recv",
+      "value": " 收"
+    },
+    {
+      "name": "m_chat_took",
+      "value": " · 用时 "
+    },
+    {
+      "name": "m_chat_first_delta",
+      "value": " · 首字 "
+    },
+    {
+      "name": "m_chat_list_button",
+      "value": "≡ 会话"
+    },
+    {
+      "name": "m_chat_new_button",
+      "value": "＋ 新对话"
+    },
+    {
+      "name": "m_chat_sessions",
+      "value": "会话"
+    },
+    {
+      "name": "m_chat_search_hint",
+      "value": "搜索会话"
+    },
+    {
+      "name": "m_chat_no_match",
+      "value": "无匹配会话"
+    },
+    {
+      "name": "m_chat_tag_local",
+      "value": "本地"
+    },
+    {
+      "name": "m_chat_tag_server",
+      "value": "服务端"
+    },
+    {
+      "name": "m_login_no_server",
+      "value": "未配置服务器，请先在设置页激活"
+    },
+    {
+      "name": "m_onboard_my_hermes",
+      "value": "我的 Hermes"
+    },
+    {
+      "name": "m_scan_auth_warn",
+      "value": "网关可达但认证检测未通过，保存后请确认网关已启动。"
+    },
+    {
+      "name": "m_scan_no_gateway",
+      "value": "没有可用的网关（全部不可达或认证失败）"
+    },
+    {
+      "name": "m_settings_load_fail",
+      "value": "加载失败："
+    },
+    {
+      "name": "m_prompt_intro",
+      "value": "请帮我完成本机（运行 Hermes 网关的这台机器）的 HermesPaw 手机接入配置。目标："
+    },
+    {
+      "name": "m_prompt_profile_name",
+      "value": "档案显示名：\""
+    },
+    {
+      "name": "m_prompt_step1",
+      "value": "1. 使用本机 Hermes 网关的 default 配置（默认 profile）；若不存在，报告并停下；"
+    },
+    {
+      "name": "m_prompt_step2",
+      "value": "2. 该配置的 API server 处于就绪状态：已启用、监听办公网络（非本机回环）、持有长效连接 key；若已就绪，核对后跳过；"
+    },
+    {
+      "name": "m_prompt_step3",
+      "value": "3. 生成 HermesPaw 接入二维码（hermespaw:// 配置串，单一档码），存到 /tmp/hermespaw-qr.png；"
+    },
+    {
+      "name": "m_prompt_step4",
+      "value": "4. 把图片文件 /tmp/hermespaw-qr.png 发给我；若当前通道无法发图片，改把 hermespaw:// 配置串贴到对话里（该文本含长效 key，仅可信通道发送、勿转发）；"
+    },
+    {
+      "name": "m_prompt_step5",
+      "value": "5. 若中途预检不通过（如 API server 不可达、无 key），报告具体原因与处置办法，不要出码；若需要重启网关，把重启命令告诉我，我重启完成后再继续；"
+    },
+    {
+      "name": "m_prompt_step6",
+      "value": "6. 我扫码完成后，提醒我删除 /tmp/hermespaw-qr.png。"
+    },
+    {
+      "name": "m_vm_no_addr",
+      "value": "服务器地址未配置（请到设置页填写）"
+    },
+    {
+      "name": "m_vm_no_secure_store",
+      "value": "当前设备不支持安全存储，无法使用网关 Token"
+    },
+    {
+      "name": "m_vm_read_token_fail",
+      "value": "读取 Token 失败，请到设置页重新填写"
+    },
+    {
+      "name": "m_vm_connected",
+      "value": "已连接："
+    },
+    {
+      "name": "m_vm_connecting",
+      "value": "连接中，请稍候再试"
+    },
+    {
+      "name": "m_vm_connect_fail",
+      "value": "连接失败，请到设置页检查"
+    },
+    {
+      "name": "m_vm_read_local_fail",
+      "value": "读取本地会话失败"
+    },
+    {
+      "name": "m_vm_new_session_fail",
+      "value": "新建会话失败："
+    },
+    {
+      "name": "m_vm_read_session_fail",
+      "value": "读取会话失败："
+    },
+    {
+      "name": "m_vm_session_missing",
+      "value": "会话不存在"
+    },
+    {
+      "name": "m_vm_login_expired",
+      "value": "登录状态已失效，请重新登录"
+    },
+    {
+      "name": "m_vm_history_fail",
+      "value": "历史重拉失败（显示本地缓存）："
+    },
+    {
+      "name": "m_vm_max_images_prefix",
+      "value": "每轮最多附 "
+    },
+    {
+      "name": "m_vm_max_images_suffix",
+      "value": " 张图"
+    },
+    {
+      "name": "m_vm_no_image",
+      "value": "未选择图片"
+    },
+    {
+      "name": "m_vm_pick_cancelled",
+      "value": "选图已取消或失败，可重试（或仅发文字）"
+    },
+    {
+      "name": "m_vm_image_fail",
+      "value": "图片处理失败，请重试"
+    },
+    {
+      "name": "m_vm_image_fail_text",
+      "value": "图片处理失败，已按纯文本发送"
+    },
+    {
+      "name": "m_vm_images_skipped",
+      "value": " 张图处理失败已跳过"
+    },
+    {
+      "name": "m_vm_local_save_fail",
+      "value": "本地保存失败："
+    },
+    {
+      "name": "m_vm_stopped",
+      "value": "已停止生成"
+    },
+    {
+      "name": "m_vm_send_fail",
+      "value": "发送失败："
+    },
+    {
+      "name": "m_vm_copied",
+      "value": "已复制"
+    },
+    {
+      "name": "m_vm_copy_fail",
+      "value": "复制失败："
+    },
+    {
+      "name": "m_vm_delete_fail",
+      "value": "删除失败："
+    },
+    {
+      "name": "m_vm_mic_perm",
+      "value": "需要麦克风权限才能使用语音输入。请在系统设置中允许后重试。"
+    },
+    {
+      "name": "m_vm_voice_start_fail",
+      "value": "语音识别启动失败："
+    },
+    {
+      "name": "m_vm_voice_done",
+      "value": "识别完成，已填入输入框"
+    },
+    {
+      "name": "m_vm_voice_empty",
+      "value": "未识别到语音"
+    },
+    {
+      "name": "m_vm_voice_too_long",
+      "value": "录音过长，请缩短后再试"
+    },
+    {
+      "name": "m_vm_voice_fail_prefix",
+      "value": "语音识别失败（"
+    },
+    {
+      "name": "m_vm_assistant_save_fail",
+      "value": "助手回复本地保存失败"
+    },
+    {
+      "name": "m_vm_interrupted_polling",
+      "value": "连接中断，正在继续获取结果…（若长时间无响应，下拉重试）"
+    },
+    {
+      "name": "m_vm_bad_status",
+      "value": "服务端返回异常状态"
+    },
+    {
+      "name": "m_vm_diag_prefix",
+      "value": "（诊断码："
+    },
+    {
+      "name": "m_vm_interrupted_remote",
+      "value": "已中断 · 任务仍在服务端（点右上「服务端会话」取回）"
+    },
+    {
+      "name": "m_vm_partial_steps",
+      "value": "回复可能不完整（模型步数已达上限），以上为已生成内容"
+    },
+    {
+      "name": "m_vm_steps_exhausted",
+      "value": "模型步数已达上限，未生成回复，请简化问题后重试"
+    },
+    {
+      "name": "m_vm_run",
+      "value": "运行"
+    },
+    {
+      "name": "m_vm_see_gateway_log",
+      "value": "详见网关日志"
+    },
+    {
+      "name": "m_vm_stream_error",
+      "value": "流错误："
+    },
+    {
+      "name": "m_vm_approval_timeout",
+      "value": "审批超时：已自动拒绝"
+    },
+    {
+      "name": "m_vm_approval_denied",
+      "value": "已拒绝该审批"
+    },
+    {
+      "name": "m_vm_approval_ok_prefix",
+      "value": "已批准（"
+    },
+    {
+      "name": "m_vm_approval_fail",
+      "value": "审批提交失败："
+    },
+    {
+      "name": "m_vm_choice_once",
+      "value": "本次"
+    },
+    {
+      "name": "m_vm_choice_session",
+      "value": "本会话"
+    },
+    {
+      "name": "m_vm_choice_always",
+      "value": "固定"
+    },
+    {
+      "name": "m_vm_choice_deny",
+      "value": "拒绝"
+    },
+    {
+      "name": "m_vm_no_running",
+      "value": "当前没有进行中的 run"
+    },
+    {
+      "name": "m_vm_steer_ok",
+      "value": "已插入"
+    },
+    {
+      "name": "m_vm_steer_rejected",
+      "value": "插话未被接受"
+    },
+    {
+      "name": "m_vm_steer_fail",
+      "value": "插话失败："
+    },
+    {
+      "name": "m_vm_unsupported_prefix",
+      "value": "当前不支持 "
+    },
+    {
+      "name": "m_vm_busy_switch",
+      "value": "请等当前任务完成后再切换"
+    },
+    {
+      "name": "m_vm_new_ok",
+      "value": "已新建对话"
+    },
+    {
+      "name": "m_vm_busy_no_switch",
+      "value": "当前任务进行中，无法切换会话"
+    },
+    {
+      "name": "m_vm_no_history",
+      "value": "无历史会话"
+    },
+    {
+      "name": "m_vm_resume_list",
+      "value": "可切换会话（/resume 序号）：\\n"
+    },
+    {
+      "name": "m_vm_no_match",
+      "value": "未找到匹配会话"
+    },
+    {
+      "name": "m_vm_switched_prefix",
+      "value": "已切换到「"
+    },
+    {
+      "name": "m_vm_switch_fail",
+      "value": "切换会话失败："
+    },
+    {
+      "name": "m_vm_no_active",
+      "value": "当前无活动会话"
+    },
+    {
+      "name": "m_vm_current_title",
+      "value": "当前标题："
+    },
+    {
+      "name": "m_vm_renamed_prefix",
+      "value": "已改名为「"
+    },
+    {
+      "name": "m_vm_rename_fail",
+      "value": "改名失败："
+    },
+    {
+      "name": "m_vm_no_run",
+      "value": "当前无运行任务"
+    },
+    {
+      "name": "m_vm_stopped_short",
+      "value": "已停止"
+    },
+    {
+      "name": "m_vm_no_pending_approval",
+      "value": "当前无待审批"
+    },
+    {
+      "name": "m_vm_specify_option",
+      "value": "请指定选项："
+    },
+    {
+      "name": "m_vm_invalid_option",
+      "value": "无效选项，可用："
+    },
+    {
+      "name": "m_vm_read_server_fail",
+      "value": "读取服务端会话失败："
+    },
+    {
+      "name": "m_vm_active_no_delete",
+      "value": "当前会话有任务在跑，先停止再删"
+    },
+    {
+      "name": "m_vm_takeover_fail",
+      "value": "接手会话失败："
+    },
+    {
+      "name": "m_login_bad_code",
+      "value": "验证码错误或已过期，请重新获取"
+    },
+    {
+      "name": "m_login_too_frequent",
+      "value": "操作过于频繁，请稍后再试"
+    },
+    {
+      "name": "m_login_send_code_fail",
+      "value": "验证码发送失败，请稍后重试"
+    },
+    {
+      "name": "m_login_bad_email",
+      "value": "邮箱格式不正确，请检查"
+    },
+    {
+      "name": "m_login_unreachable",
+      "value": "无法连接服务器，请检查网络后重试"
+    },
+    {
+      "name": "m_login_req_fail",
+      "value": "请求失败，请重试"
+    },
+    {
+      "name": "m_login_need_code",
+      "value": "请输入 6 位数字验证码"
+    },
+    {
+      "name": "m_scan_camera_perm",
+      "value": "需要相机权限才能扫码。请在系统设置中允许后重试（或改用相册/粘贴）。"
+    },
+    {
+      "name": "m_scan_cancelled",
+      "value": "扫码已取消或失败，可重试（或改用相册/粘贴）"
+    },
+    {
+      "name": "m_scan_no_qr",
+      "value": "图片中未识别到二维码，请重试（或改用相机扫码/粘贴）"
+    },
+    {
+      "name": "m_scan_gallery_fail",
+      "value": "相册识码已取消或失败，可重试"
+    },
+    {
+      "name": "m_scan_paste_first",
+      "value": "请先粘贴配置串"
+    },
+    {
+      "name": "m_scan_needs_version_prefix",
+      "value": "此二维码需要更高版本 App（需 "
+    },
+    {
+      "name": "m_scan_current_prefix",
+      "value": "，当前 "
+    },
+    {
+      "name": "m_scan_needs_version_suffix",
+      "value": "），请升级后重扫"
+    },
+    {
+      "name": "m_scan_no_usable",
+      "value": "没有可用的网关，请检查网络/key 后重试"
+    },
+    {
+      "name": "m_scan_auth_ok",
+      "value": "认证通过"
+    },
+    {
+      "name": "m_scan_unreachable_2s",
+      "value": "不可达（2s 超时）"
+    },
+    {
+      "name": "m_scan_no_reply_prefix",
+      "value": "无应答："
+    },
+    {
+      "name": "m_scan_bad_key",
+      "value": "key 错误（401）"
+    },
+    {
+      "name": "m_scan_no_profile",
+      "value": "profile 不存在（404）"
+    },
+    {
+      "name": "m_scan_no_reply",
+      "value": "无应答"
+    },
+    {
+      "name": "m_scan_imported",
+      "value": "已导入并激活："
+    },
+    {
+      "name": "m_scan_import_fail",
+      "value": "导入失败，请重试"
+    },
+    {
+      "name": "m_session_untitled_prefix",
+      "value": "未命名 · "
+    },
+    {
+      "name": "m_settings_read_config_fail",
+      "value": "读取服务器配置失败"
+    },
+    {
+      "name": "m_settings_read_current_fail",
+      "value": "读取当前服务器失败"
+    },
+    {
+      "name": "m_settings_busy",
+      "value": "操作进行中，请稍候"
+    },
+    {
+      "name": "m_settings_import_fail",
+      "value": "导入失败："
+    },
+    {
+      "name": "m_settings_diagnosing",
+      "value": "诊断中…"
+    },
+    {
+      "name": "m_settings_read_token_fail",
+      "value": "读取 Token 失败："
+    },
+    {
+      "name": "m_settings_server_missing",
+      "value": "服务器不存在"
+    },
+    {
+      "name": "m_settings_server_no_addr",
+      "value": "该服务器尚未配置地址"
+    },
+    {
+      "name": "m_settings_activate_fail",
+      "value": "激活失败："
+    },
+    {
+      "name": "m_settings_activated",
+      "value": "已激活："
+    },
+    {
+      "name": "m_settings_save_fail",
+      "value": "保存失败："
+    },
+    {
+      "name": "m_settings_deleted",
+      "value": "已删除："
+    },
+    {
+      "name": "m_session_active_no_delete",
+      "value": "该会话有任务在跑，先停止再删"
+    },
+    {
+      "name": "m_session_delete_fail",
+      "value": "删除会话失败："
+    }
+  ]
+}

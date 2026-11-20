@@ -1,0 +1,72 @@
+{
+  "module": {
+    "name": "entry",
+    "type": "entry",
+    "description": "$string:module_desc",
+    // NOTE: no versionCode/versionName here — HarmonyOS module schema
+    // rejects version fields at module level (00303038, real-device build
+    // 2026-10-30). Versions are maintained ONLY in AppScope/app.json5
+    // (versionCode 1000000 / versionName "0.1.0") + oh-package.json5.
+    "mainElement": "EntryAbility",
+    "deviceTypes": [
+      "phone"
+    ],
+    "deliveryWithInstall": true,
+    "installationFree": false,
+    "pages": "$profile:main_pages",
+    "abilities": [
+      {
+        "name": "EntryAbility",
+        "srcEntry": "./ets/entryability/EntryAbility.ets",
+        "description": "$string:EntryAbility_desc",
+        "icon": "$media:icon",
+        "label": "$string:EntryAbility_label",
+        "startWindowIcon": "$media:icon",
+        "startWindowBackground": "$color:start_window_background",
+        // required for CLI "hdc shell aa start" to launch (verified on device 2026-10-28);
+        // desktop icon launch is unaffected
+        "exported": true,
+        "skills": [
+          {
+            "entities": [
+              "entity.system.home"
+            ],
+            "actions": [
+              "action.system.home"
+            ]
+          }
+        ]
+      }
+    ],
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.INTERNET"
+      },
+      {
+        // user_grant: runtime request via abilityAccessCtrl in
+        // ScanVM.startScan before the system scan UI (S1 QR scan)
+        "name": "ohos.permission.CAMERA",
+        "reason": "$string:camera_reason",
+        "usedScene": {
+          "abilities": [
+            "EntryAbility"
+          ],
+          "when": "inuse"
+        }
+      },
+      {
+        // user_grant: runtime request via abilityAccessCtrl in
+        // ChatVM.startVoice before the CoreSpeechKit engine starts
+        // listening (S2-c voice input)
+        "name": "ohos.permission.MICROPHONE",
+        "reason": "$string:mic_reason",
+        "usedScene": {
+          "abilities": [
+            "EntryAbility"
+          ],
+          "when": "inuse"
+        }
+      }
+    ]
+  }
+}

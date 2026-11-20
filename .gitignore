@@ -1,0 +1,16 @@
+evidence/
+
+# HarmonyOS / DevEco build artifacts
+.hvigor/
+oh_modules/
+**/build/
+**/.preview/
+**/.test/
+local.properties
+.idea/
+**/oh-package-lock.json5
+.cxx/
+
+# 内部测试报告（含内网证据，仓库外保留，不入库）
+docs/test-reports/
+__pycache__/

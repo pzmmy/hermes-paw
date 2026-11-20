@@ -1,0 +1,16 @@
+{
+  "modelVersion": "6.0.0",
+  "name": "hermes-paw",
+  "version": "0.1.0",
+  "description": "HermesPaw: HarmonyOS NEXT native client for the Hermes Agent gateway (pure ArkTS, zero third-party runtime deps)",
+  "main": "",
+  "author": "pzmmy",
+  "license": "MIT",
+  "dependencies": {},
+  // @ohos/hvigor 与 @ohos/hvigor-ohos-plugin 由 DevEco Studio 自带（ohpm 公共仓库没有这两个包），
+  // 不在 devDependencies 里声明；DevEco 首次打开工程会自动写入本机路径。
+  // 需要跑 ohosTest 时才有依赖：@ohos/hypium 来自 ohpm 公共仓库。
+  "devDependencies": {
+    "@ohos/hypium": "1.0.19"
+  }
+}

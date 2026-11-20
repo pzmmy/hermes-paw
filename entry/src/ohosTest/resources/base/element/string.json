@@ -1,0 +1,16 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "费控鸿蒙版设备测试模块"
+    },
+    {
+      "name": "testability_desc",
+      "value": "设备单元测试入口 Ability"
+    },
+    {
+      "name": "TestAbility_label",
+      "value": "探路者移动办公APP测试"
+    }
+  ]
+}

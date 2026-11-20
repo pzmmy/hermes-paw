@@ -1,0 +1,96 @@
+{
+  "color": [
+    {
+      "name": "start_window_background",
+      "value": "#10131A"
+    },
+    {
+      "name": "bg_page",
+      "value": "#FAFAFA"
+    },
+    {
+      "name": "bg_card",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "bg_subtle",
+      "value": "#F5F5F5"
+    },
+    {
+      "name": "divider",
+      "value": "#EEEEEE"
+    },
+    {
+      "name": "text_primary",
+      "value": "#212121"
+    },
+    {
+      "name": "text_secondary",
+      "value": "#757575"
+    },
+    {
+      "name": "text_hint",
+      "value": "#9E9E9E"
+    },
+    {
+      "name": "text_inverse",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "danger",
+      "value": "#E53935"
+    },
+    {
+      "name": "danger_deep",
+      "value": "#C62828"
+    },
+    {
+      "name": "danger_soft",
+      "value": "#FFEBEE"
+    },
+    {
+      "name": "success",
+      "value": "#2E7D32"
+    },
+    {
+      "name": "success_soft",
+      "value": "#E8F5E9"
+    },
+    {
+      "name": "warning",
+      "value": "#EF6C00"
+    },
+    {
+      "name": "warning_amber",
+      "value": "#FFB300"
+    },
+    {
+      "name": "warning_soft",
+      "value": "#FFF3E0"
+    },
+    {
+      "name": "chip_dark",
+      "value": "#424242"
+    },
+    {
+      "name": "scan_bg",
+      "value": "#121212"
+    },
+    {
+      "name": "scan_card",
+      "value": "#1A1A1A"
+    },
+    {
+      "name": "scan_text",
+      "value": "#90A4AE"
+    },
+    {
+      "name": "scan_warn_text",
+      "value": "#FFCC80"
+    },
+    {
+      "name": "overlay",
+      "value": "#B3000000"
+    }
+  ]
+}
