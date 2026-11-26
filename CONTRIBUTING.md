@@ -16,7 +16,7 @@
 
 不需要 Node.js，不需要 npm。
 
-## 三种检查，按需选
+## 四种检查，按需选
 
 ### 1. 静态自测（无设备、无网关、无凭据）
 
@@ -55,6 +55,24 @@ HDC=/path/to/hdc TARGET=<ip:port> bash tools/ohostest.sh
 
 用例在 `entry/src/ohosTest/ets/test/List.test.ets`，目前 18 个，覆盖标题派生、空标题兜底、轮询节拍、斜杠命令解析。
 
+### 4. 真编译（**改了 `.ets` 必跑**）
+
+```bash
+make compile
+```
+
+它把源码 rsync 到 Windows 工程后跑 `hvigorw assembleHap`，只看一件事：**能不能编译过**。
+退出码 `0` = 通过、`77` = 本机没有 Windows 工程（跳过）、其他 = 编译失败并打印 hvigor 的错误行。
+
+为什么必须跑：`arkts-lint` 和所有静态断言都**看不到类型与资源错误**。实证——某次改动
+40 行，lint 51 个文件 0 findings、静态自测 23 项全绿，真编译却报
+`arkts-no-structural-typing`；另有一次 `$r('app.color.primary')` 引用了不存在的资源，
+也是只有编译器能发现。**绿勾不等于能编译。**
+
+为什么只在本机：ArkTS 的 Linux 侧编译需要 OpenHarmony SDK，本项目还用了
+`@kit.ScanKit` / `@kit.CoreSpeechKit`（华为专有、公开 SDK 无声明），用 stub 兜会造出
+新的「假绿」。所以这条不进 CI，PR 里请附 `make compile` 的输出。
+
 ## CI 做什么、不做什么
 
 `.github/workflows/selftest.yml` 在 Ubuntu 上跑 `make test` 和 `make scan`。
@@ -62,6 +80,7 @@ HDC=/path/to/hdc TARGET=<ip:port> bash tools/ohostest.sh
 **它不编译 HAP。** `hvigor` 由 DevEco Studio 提供，ohpm 公共仓库里没有这个包，GitHub runner 上装不出来。所以编译和真机验证必须在本地做——PR 里请附上你本地的构建输出。
 
 这不是偷懒，是现状。看到 CI 绿勾不等于"能编译"，只等于"静态检查过了"。
+编译请在本地跑 `make compile`（见上文第 4 项），并在 PR 里贴输出。
 
 ## 代码规则
 

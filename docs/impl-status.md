@@ -1050,6 +1050,33 @@ CI 也跑同一条；默认随环境会让门禁在有 `LANG=en_US` 的机器上
 真编译 `CompileArkTS 1s 148ms` BUILD SUCCESSFUL。
 真机未验（当时无线调试未连、模拟器未启动），差异点仅 UI 文案与回前台时序。
 
+### 2.29 本地真编译门禁 `make compile`（2026-11-26）
+
+**背景**：`arkts-lint` 与全部静态自测都看不到 ArkTS 的类型/资源错误。同日实证两次：
+`arkts-no-structural-typing`（静态门禁全绿、编译失败）、`$r('app.color.primary')`
+引用不存在的资源（同样只有编译器能发现）。CI 又编不了（hvigor 由 DevEco 提供）。
+
+**做的是什么**：`make compile` —— rsync 源码到 Windows 工程 → `hvigorw assembleHap`
+→ 只认 `BUILD_EXITCODE=0`。退出码 `0` 通过 / `77` 本机无 Windows 工程（跳过）/ 其他失败。
+失败时打印 hvigor 的 `ERROR` / `Error Message` / `BUILD_EXITCODE` 行，带文件与列号。
+
+两个细节：
+- rsync 后比对两侧 `.ets` 文件数，不一致直接 FAIL——堵住「Windows 侧是另一份源码、
+  返回 UP-TO-DATE 假成功」这个坑（2026-11-20 踩过）。
+- `WIN_PAW` / `WIN_BUILD_DIR` 可覆盖，换机器只改两个变量。
+
+**验证**：正路径 `PASS compile (51 个 ets；CompileArkTS 528ms)`，整条 3.3s；
+负向对照把 `sessionRequired(e)` 改回 `ae` → `FAIL compile` + `arkts-no-structural-typing
+At File: …ChatVM.ets:911:36`，`make` 退出码 **2**；恢复后 rc=0。
+
+**为什么不做 Linux CI 移植**（同期评估结论）：我们用了 15 个 kit，其中
+`@kit.ScanKit`、`@kit.CoreSpeechKit` 是华为专有，OpenHarmony 公开 SDK 无声明；
+dsh-Go 的做法是手写 `--hms-stubs` 声明。stub 与真机 SDK 漂移时，门禁会在最关键处变绿——
+等于用一个新假可信换旧假可信。触发条件（出现外部贡献者 / 换开发机 / 多人协作）满足前不立项。
+
+**协作约定**：`CONTRIBUTING.md` 的检查清单从「三种」改为「四种」，新增「改了 `.ets`
+必跑 `make compile`」，并要求 PR 附编译输出。
+
 ## 3. 被证伪 / 被撤回的结论（写下来是为了不再犯）
 
 ### 3.1 DB PRAGMA 调优无效（S10c，已回退）
