@@ -4,6 +4,13 @@
 
 ## [未发布]
 
+- 发送幂等：`POST /v1/runs` 带 `Idempotency-Key`。同一内容重试复用键 → 网关回放既有 run，
+  不再起第二个、不二次烧 token；内容变化自动换键（避免 409 `idempotency_key_conflict`）。
+  真网关实测：同键同载荷 → 同一 run_id + `Idempotency-Replayed: true`；同键异载荷 → 409
+- 轮询的 `401/403` 不再计入连接失败：凭据失效立即收口并提示「登录失效」，
+  不再等 3 拍（约 6s）后误报「连接中断」
+- `tools/resilience-selftest.py`（14 项）接入 `make test`，负向对照已验证能红
+
 ### 工具
 
 - `tools/hermes-paw-qr` 文案双语：`--lang zh|en`（69 条文案 × 2），默认简体中文；

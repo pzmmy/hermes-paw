@@ -293,6 +293,12 @@ export class ChatVM {
   private lastOutLen: number = 0;
   /** S6a 埋点：本轮 getRun 拍号（每 run 复位，用于对齐日志与拍距）。 */
   private pollSeq: number = 0;
+  /** 2026-11-26 幂等键：一次「用户意图发送」一个键，网络重试复用，成功即清。
+   *  网关按 (scope, body) 指纹判重（api_server_runs.py:708）——同键不同载荷会 409，
+   *  所以内容变了必须换键，靠 sendIdemFp 守。 */
+  private sendIdemKey: string = '';
+  /** 键对应的内容指纹（text + 图片 uri 列表）。 */
+  private sendIdemFp: string = '';
   elapsedSec: number = 0;
 
   constructor(ctx: common.Context, db: DbHelper, profile: ServerProfile) {
@@ -505,6 +511,18 @@ export class ChatVM {
       return ae.code === 401 && authErrorCode(ae) === 'user_session_required';
     }
     return false;
+  }
+
+  /** 2026-11-26：取本次发送的幂等键。
+   *  同一内容的重试复用同一个键（网关回放既有 run，不再起第二个）；
+   *  内容变了必须换键——网关对「同键不同载荷」返回 409 idempotency_key_conflict。 */
+  private idemKeyForSend(text: string, imageUris: string[]): string {
+    let fp: string = text + '|' + imageUris.join(',');
+    if (this.sendIdemKey === '' || fp !== this.sendIdemFp) {
+      this.sendIdemKey = 'paw-' + String(Date.now()) + '-' + Math.random().toString(16).slice(2, 10);
+      this.sendIdemFp = fp;
+    }
+    return this.sendIdemKey;
   }
 
   /** Refresh the local session list (updated_at desc). */
@@ -874,6 +892,26 @@ export class ChatVM {
       snap = await this.runs.getRun(rid);
     } catch (err) {
       let e: Error = err as Error;
+      // 2026-11-26 §R3 补：401/403 是**凭据**问题，不是连接问题。若按原路径走，
+      // 3 拍（约 6s）后会把「密钥/登录失效」误报成「连接丢失」，用户还会继续白等。
+      // 立刻收口并给准确文案。
+      if (err instanceof ApiError) {
+        let ae: ApiError = err;
+        if (ae.code === 401 || ae.code === 403) {
+          if (rid !== this.poller.getRunId()) {
+            return; // 已切 run：本次结果作废
+          }
+          LogSafe.w(TAG, 'baseline poll auth failed: code=%{public}d runId=%{public}s',
+            ae.code, rid);
+          if (this.sessionRequired(e)) {
+            this.authMode = 'loggedOut';
+            this.dropAuthIdentity();
+          }
+          this.stopBaselinePoll();
+          this.finalizeRun('', 'auth-failed', false);
+          return;
+        }
+      }
       // §R3 ①：连接层事实计数（网络断/单次预算超时），不再是静默 return。
       this.failStreak = this.failStreak + 1;
       LogSafe.w(TAG, 'poll#%{public}d t=%{public}dms failed: %{public}s',
@@ -1111,7 +1149,11 @@ export class ChatVM {
     this.resetRunState();
 
     try {
-      let runId: string = await this.runs.createRun(input, this.activeSessionId);
+      let idemKey: string = this.idemKeyForSend(text, imageUris);
+      let runId: string = await this.runs.createRun(input, this.activeSessionId, idemKey);
+      // 网关已受理（202 或幂等回放）：本次逻辑发送到此结束，下次发送重新起键。
+      this.sendIdemKey = '';
+      this.sendIdemFp = '';
       this.activeRunId = runId;
       // S2-a: run accepted (202) — the attachment row is consumed
       // whether the run is streamed or stopped-immediately (the
@@ -1430,6 +1472,10 @@ export class ChatVM {
           ? Msg.t('m_vm_partial_steps')
           : Msg.t('m_vm_steps_exhausted');
         LogSafe.i(TAG, 'finalize incomplete: showing partial answer (len=%{public}d)', finalText.length);
+      } else if (how === 'auth-failed') {
+        // 2026-11-26：凭据失效（401/403）。既不是「连接丢失」也不是「run 失败」，
+        // 文案必须指向重新接入/换 key，否则用户会去查网络。
+        this.error = Msg.t('m_vm_login_expired');
       } else {
         this.error = Msg.t('m_vm_run') + how + '：' + (out === '' ? Msg.t('m_vm_see_gateway_log') : out);
       }

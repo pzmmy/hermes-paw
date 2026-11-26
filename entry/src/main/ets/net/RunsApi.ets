@@ -21,14 +21,27 @@ export class RunsApi {
   /** POST /v1/runs → 202 {run_id}（W-02a）；body {input, session_id?}
    *  S2-a：input = 纯文本 string（M1 原形）或多模态 OpenAI 风格
    *  messages 数组（model/Multimodal.buildUserMessage，2026-10-31
-   *  网关实证）。裸 parts 数组会 400，勿绕过 Multimodal 直接拼。 */
-  async createRun(input: Object, sessionId: string): Promise<string> {
+   *  网关实证）。裸 parts 数组会 400，勿绕过 Multimodal 直接拼。
+   *
+   *  2026-11-26 幂等：网关已实现标准 Idempotency-Key（见
+   *  gateway/platforms/api_server_runs.py:786 读头、:562 同键不同载荷 409、
+   *  :551 重放回 Idempotency-Replayed）。同一逻辑发送的网络重试复用同一个键
+   *  → 网关回放既有 run，不会再起第二个、不会二次烧 token。
+   *  空串 = 不带该头（保持旧行为，兼容性兜底）。 */
+  async createRun(input: Object, sessionId: string, idempotencyKey: string): Promise<string> {
     let body: Record<string, Object> = {};
     body['input'] = input;
     if (sessionId !== '') {
       body['session_id'] = sessionId;
     }
-    let r: HttpResult = await this.client.request(http.RequestMethod.POST, '/v1/runs', body);
+    let extra: Record<string, string> | undefined = undefined;
+    if (idempotencyKey !== '') {
+      let h: Record<string, string> = {};
+      h['Idempotency-Key'] = idempotencyKey;
+      extra = h;
+    }
+    let r: HttpResult = await this.client.request(http.RequestMethod.POST, '/v1/runs', body,
+      undefined, undefined, undefined, extra);
     let d: Record<string, Object>;
     try {
       d = JSON.parse(r.body);

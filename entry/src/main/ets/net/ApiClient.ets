@@ -152,7 +152,8 @@ export class ApiClient {
    */
   async request(method: http.RequestMethod, path: string, body?: Object,
                 readTimeoutMs?: number, noRetry?: boolean,
-                hardTimeoutMs?: number): Promise<HttpResult> {
+                hardTimeoutMs?: number,
+                extraHeaders?: Record<string, string>): Promise<HttpResult> {
     if (this.baseUrl === '') {
       throw new ApiError(-1, 'not configured', ''); // P2-15
     }
@@ -161,7 +162,7 @@ export class ApiClient {
     let attempts: number = (method === http.RequestMethod.GET && retry) ? 2 : 1;
     let last: AttemptOutcome = { ok: false, serverCode: 0, message: 'not attempted', rawBody: '' };
     for (let i = 0; i < attempts; i++) {
-      last = await this.doOnce(method, path, body, rt, hardTimeoutMs);
+      last = await this.doOnce(method, path, body, rt, hardTimeoutMs, extraHeaders);
       if (last.ok) {
         if (last.result === undefined) {
           throw new ApiError(0, 'no result', last.rawBody); // 防回归（P2-06）
@@ -323,7 +324,8 @@ export class ApiClient {
   }
 
   private async doOnce(method: http.RequestMethod, path: string, body: Object | undefined,
-                       readTimeoutMs: number, hardTimeoutMs?: number): Promise<AttemptOutcome> {
+                       readTimeoutMs: number, hardTimeoutMs?: number,
+                       extraHeaders?: Record<string, string>): Promise<AttemptOutcome> {
     let req: http.HttpRequest = http.createHttp();
     // §R0-3：JS 层硬上限（仅当调用方传 hardTimeoutMs）。
     let hardTimerId: number = -1;
@@ -332,6 +334,14 @@ export class ApiClient {
       let headers: Record<string, string> = this.baseHeaders();
       if (body !== undefined) {
         headers['Content-Type'] = 'application/json';
+      }
+      // 调用方自定义头（如 POST /v1/runs 的 Idempotency-Key）。放在 baseHeaders
+      // 之后覆盖：调用方的意图优先，且不引入第二套头拼装逻辑。
+      if (extraHeaders !== undefined) {
+        let keys: string[] = Object.keys(extraHeaders);
+        for (let i = 0; i < keys.length; i++) {
+          headers[keys[i]] = extraHeaders[keys[i]];
+        }
       }
       let reqP: Promise<http.HttpResponse> = req.request(this.buildUrl(path), {
         method: method,

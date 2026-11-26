@@ -941,6 +941,64 @@ CI 也跑同一条；默认随环境会让门禁在有 `LANG=en_US` 的机器上
 
 负向对照（实测）：删掉 en 表的 `list_col_role` → 三条断言全红并指出缺哪条 key；恢复 → 全绿。
 
+### 2.27 韧性改造（对标 dsh-Go 源码后的实际落地）
+
+对 dsh-Go（ccch1mneyyy/dsh-Go，AGPL-3.0，只借鉴设计不搬代码）读了三处源码后，
+原计划三条改造；落地前先核实，结论是**两条我们本来就有**：
+
+| 计划项 | 核实结论 | 证据 |
+|---|---|---|
+| 故障预算 | **已存在** | `viewmodel/stream/RunPolicy.ets:17` `GETRUN_FAIL_LIMIT=3`、`UNKNOWN_STATUS_LIMIT=3`、`decideGiveUp()` |
+| generation 隔离 | **已存在（run 级）** | `ChatVM.ets:906` 与 `checkGiveUp()` 开头的 `rid !== this.poller.getRunId()` 双重守卫 |
+| 幂等键 | 缺失 → 本次补齐 | `RunsApi.createRun` 原先 body 只有 input/session_id |
+| 401/403 分类 | 缺失 → 本次补齐 | 轮询 catch 原先一律计入 failStreak |
+
+**为什么只用 run 级隔离就够**：本项目的「世代」就是 run——换会话/退出登录必然
+`poller.stop()` 把 `runId` 清空，迟到响应因此被 `rid !== getRunId()` 挡掉；再叠一层
+连接世代是给长连接（dsh-Go 用 WS）准备的，轮询客户端没有对应对象。故不新增。
+
+#### 新增 1：发送幂等键（Idempotency-Key）
+
+网关**已实现**标准幂等（`gateway/platforms/api_server_runs.py:786` 读头、`:708`
+按 (scope, body 指纹) 判重、`:551` 重放回 `Idempotency-Replayed: true`、`:562`
+同键异载荷 `409 idempotency_key_conflict`）。
+
+客户端改动：
+- `ApiClient.request()` 增可选 `extraHeaders`，`doOnce()` 在 `baseHeaders()` 之后合并
+  （调用方意图优先，不引入第二套头拼装）
+- `RunsApi.createRun(input, sessionId, idempotencyKey)`：非空才带头，空串保持旧行为
+- `ChatVM`：`idemKeyForSend(text, imageUris)` 生成 `paw-<ts>-<hex>`；**同内容重试复用键，
+  内容变了换键**（否则 409）；受理后清键，下次发送重新起键
+
+真网关实测（236，2026-11-26）：
+```
+第1次: HTTP=202 run_id=run_7dcea933… (无重放头)
+第2次: HTTP=202 run_id=run_7dcea933… Idempotency-Replayed: true   ← 没有起第二个 run
+同键换内容: HTTP=409 409 冲突                                      ← 契约成立
+→ 已停止该 run: HTTP=200
+```
+
+#### 新增 2：401/403 与连接故障分开
+
+原先轮询失败一律 `failStreak++`，3 拍（约 6s）后走 `connection-lost`，提示「连接中断」——
+而真实原因是密钥/登录失效，用户会去查网络。
+
+改法：`baselinePollOnce` 的 catch 里先判 `ApiError.code === 401 || 403` → 立即
+`stopBaselinePoll()` + `finalizeRun('', 'auth-failed', false)`；`finalizeRun` 新增
+`auth-failed` 分支映射到 `m_vm_login_expired`；`user_session_required` 场景额外
+`authMode='loggedOut'` + `dropAuthIdentity()`。
+
+#### 门禁与编译
+
+- 新增 `tools/resilience-selftest.py`（14 项，进 `make test`）：幂等头是**赋值形态**
+  而非注释字样、401 判定**顺序必须早于** failStreak 自增、auth-failed 映射、键的生命周期
+- 负向对照实测：删掉写头那行 + 把 401 块挪到计数之后 → 2 项转红；恢复即绿
+- **真编译抓到一处 ArkTS 错误**（这正是我们缺的 Linux 侧门禁的价值）：把 `ApiError`
+  传给 `Error` 形参会触发 `arkts-no-structural-typing`（ChatVM:906）。改为与发送路径
+  一致传 `e` 后 `CompileArkTS 2s 87ms` 通过。
+
+未验：401 路径的**真机**表现（需造一个错 key 的 profile），目前只有编译 + 静态门禁覆盖。
+
 ## 3. 被证伪 / 被撤回的结论（写下来是为了不再犯）
 
 ### 3.1 DB PRAGMA 调优无效（S10c，已回退）
