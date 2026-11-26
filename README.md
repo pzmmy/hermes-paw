@@ -13,6 +13,8 @@ HarmonyOS NEXT 原生客户端，对接 [Hermes Agent](https://github.com/NousRe
 它**不做公网中继、不经过第三方 IM**：手机与网关同网段直连。换来的是完整交互（run 生命周期、审批卡、
 插话、会话列表与搜索）和不把对话内容交给别人；代价是离开这个网段就用不了。
 
+> 审批只在 App 前台可批：手机锁屏或 App 在后台时，服务端 60 秒后自动拒绝（命令不会执行）。
+
 ## 30 秒看懂
 
 ![演示](docs/screenshots/demo-zh.gif)

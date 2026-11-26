@@ -22,6 +22,8 @@ talks to the gateway directly on the same subnet. In exchange you get the full i
 (run lifecycle, approval card, steering, session list and search) and no third party reading your
 conversation. The trade-off: outside that subnet it does not work.
 
+> Approvals can only be answered while the app is in the foreground: if the phone is locked or the app is backgrounded, the server auto-denies after 60 seconds (the command does not run).
+
 ## 30-second tour
 
 ![demo](docs/screenshots/demo-en.gif)
