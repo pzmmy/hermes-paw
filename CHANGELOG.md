@@ -2,7 +2,47 @@
 
 格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [未发布]
+## [0.1.4] — 2026-11-26
+
+在 v0.1.3 的基础上补齐**网络韧性**与**编译门禁**。核心变化：同一内容重发不再产生第二个 run、
+凭据失效不再被当成网络中断、审批倒计时与实测服务端窗口（60s）对齐，并把「改了 `.ets`
+必须真编译」变成本地一条命令。
+
+### 新增
+
+- **发送幂等**：`POST /v1/runs` 带 `Idempotency-Key`。同一内容重试复用键 → 网关回放既有 run，
+  不再起第二个、不二次烧 token；内容变化自动换键（避免 409 `idempotency_key_conflict`）。
+  真网关实测：同键同载荷 → 同一 run_id + `Idempotency-Replayed: true`；同键异载荷 → 409
+- **`make compile`**：本机真编译门禁（rsync → `hvigorw assembleHap` → 只认 `BUILD_EXITCODE=0`）。
+  静态门禁看不到 ArkTS 类型/资源错误，这条能；失败时直接给文件:列号
+- `tools/resilience-selftest.py`（23 项）接入 `make test`，负向对照已验证能红
+
+### 修复
+
+- **审批窗口对齐服务端**：`pending_controls` 不带超时字段，实测服务端窗口 = 60s
+  （挂起不表态，t=60s 自动拒绝、run 转回 running）。客户端优先用载荷 `timeout_s`，
+  未下发则用实测兜底 60s，并在注释里留实测 run_id 防后人再猜
+- **回前台立刻对账**：`resumeFromBackground()` 同时补一拍 run 状态与审批状态，不等 5s 拍点
+- **倒计时不再替服务端宣布过期**：归零但卡片仍在时提示「已超过预估窗口，仍在等待服务端确认」
+- **`401/403` 不再计入连接失败**：凭据失效立即收口并提示「登录失效」，
+  不再等 3 拍（约 6s）后误报「连接中断」
+
+### 工具
+
+- `tools/hermes-paw-qr` 文案双语：`--lang zh|en`（69 条文案 × 2），默认简体中文；
+  `--prompt` 的接入提示词模板刻意保持中文（与 App 端 `OnboardPrompt.ets` 逐字一致）
+- `tools/s15-selftest.py` 新增 `[i18n]` 三条断言（key 集合相等 / 语言切换生效 / en 输出零中文），
+  P0 用例显式锁 `--lang zh` 保证任何 LANG 环境下确定性
+- 修：脚本内三处「重启网关」提示改为运行时拼接，避免被 Hermes 终端的生命周期守卫
+  静态扫描误判而拦下整条命令（实测误伤，直跑被拦、`python3` 直跑通过）
+- 修：`hermes-paw-qr` 非 UTF-8 控制台（`LC_ALL=C`）打印中文会崩，改为启动时 reconfig 到 UTF-8
+
+### 文档
+
+- 明确记录决策：**审批只在 App 前台可批**（不做长时任务保活、不做通知/推送），
+  README 双语各加一行边界说明，避免对外表述漂移
+- `CONTRIBUTING.md` 检查清单从「三种」改为「四种」，新增「改了 `.ets` 必跑 `make compile`」
+
 
 - 审批窗口对齐服务端：`pending_controls` 不带超时字段，实测服务端窗口 = 60s
   （挂起不表态，t=60s 自动拒绝、run 转回 running）。客户端改为优先用载荷 `timeout_s`、
