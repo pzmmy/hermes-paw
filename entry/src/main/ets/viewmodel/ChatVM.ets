@@ -64,9 +64,14 @@ const TAG: string = 'ChatVM';
 const RETENTION_MAX_SESSIONS: number = 200;
 const RETENTION_MAX_AGE_MS: number = 90 * 24 * 60 * 60 * 1000;
 
-/** S1 approval card (D2): local display countdown is a hardcoded 60s;
- *  the 5s status poll is the sole source of truth. */
-const APPROVAL_TIMEOUT_SEC: number = 60;
+/** S1 approval card (D2): 5s status poll is the sole source of truth.
+ *  2026-11-26：窗口长度优先取快照里的 timeout_s（网关将来若下发就用它）；
+ *  载荷没给时兜底 **60s —— 实测值，不是猜的**：
+ *    run_c14b9bea866f490fa87578983dd602cf，2026-11-26 在 236 上挂起审批不表态，
+ *    t=60s 时服务端自动拒绝并回 running（pending_controls 1→0）。
+ *  注意别被 `gateway/run.py:3708 _APPROVAL_TIMEOUT_SECONDS = 300` 误导：
+ *  那是另一条审批路径的常量，API runs 实测是 60s。 */
+const APPROVAL_TIMEOUT_FALLBACK_SEC: number = 60;
 const APPROVAL_POLL_MS: number = 5000;
 const COUNTDOWN_TICK_MS: number = 1000;
 /** §R0 双通道并行（本仓 2026-11-18 实测基线）：基线 getRun 轮询的拍距与
@@ -1663,8 +1668,12 @@ export class ChatVM {
     this.pendingApproval = req;
     this.notifyUi();
     this.approvalActed = false;
-    this.approvalDeadline = Date.now() + APPROVAL_TIMEOUT_SEC * 1000;
-    this.approvalCountdownSec = APPROVAL_TIMEOUT_SEC;
+    // 窗口长度以服务端为准（timeout_s）；未提供才兜底常量。
+    let win: number = req.timeout_sec > 0 ? req.timeout_sec : APPROVAL_TIMEOUT_FALLBACK_SEC;
+    this.approvalDeadline = Date.now() + win * 1000;
+    this.approvalCountdownSec = win;
+    LogSafe.i(TAG, 'approval card: promptId=%{public}s window=%{public}ds source=%{public}s',
+      req.prompt_id, win, req.timeout_sec > 0 ? 'server timeout_s' : 'fallback');
     this.startApprovalCountdown();
     this.startApprovalPolling();
   }
@@ -2111,7 +2120,9 @@ export class ChatVM {
   }
 
   /** App returned to foreground: the baseline poll (still armed) keeps
-   *  retrieving any in-flight run; nothing to re-arm here. */
+   *  retrieving any in-flight run. 2026-11-26：回来先各补一拍，不等定时器——
+   *  后台期间服务端可能已经收口/自动拒绝，界面必须立刻对齐服务端而不是
+   *  等下一个 5s 拍点。 */
   resumeFromBackground(): void {
     if (!this.suspended) {
       return;
@@ -2120,12 +2131,16 @@ export class ChatVM {
     if (this.busy && !this.terminalReceived && this.activeRunId !== '') {
       LogSafe.d(TAG, 'resumed; baseline poll remains the only channel for run=%{public}s',
         this.activeRunId);
+      this.baselinePollTick(this.activeRunId); // 立刻补一拍
     }
     if (this.pendingApproval !== null) {
       // Restart the timers frozen in the background; the deadline is
       // absolute, so the countdown recomputes from real time.
       this.startApprovalCountdown();
       this.startApprovalPolling();
+      this.approvalPollTick().catch((err: Error): void => {
+        LogSafe.w(TAG, 'resume approval re-sync failed: %{public}s', err.message);
+      });
     }
   }
 

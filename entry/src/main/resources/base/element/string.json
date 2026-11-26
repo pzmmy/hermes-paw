@@ -1403,6 +1403,10 @@
     {
       "name": "signout_done",
       "value": "已退出登录"
+    },
+    {
+      "name": "approval_countdown_over",
+      "value": "已超过预估窗口，仍在等待服务端确认"
     }
   ]
 }

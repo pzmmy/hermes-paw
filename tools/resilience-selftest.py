@@ -83,6 +83,31 @@ def main() -> int:
     chk(i_create != -1 and i_clear != -1 and i_clear > i_create,
         "受理后清键（下次发送重新起键）")
 
+    print("[D] 审批窗口按服务端口径（2026-11-26）")
+    run_model = read(ETS / "model/Run.ets")
+    chk("timeout_sec" in run_model, "ApprovalControl 带 timeout_sec 字段")
+    chk("numFrom(d['timeout_s'])" in run_model, "两个解析点都取 timeout_s")
+    chk("APPROVAL_TIMEOUT_FALLBACK_SEC" in vm, "客户端窗口有兜底常量")
+    # 兜底值必须是实测出来的 60s（run_c14b9bea…，t=60s 自动拒绝），不是拍脑袋的常量。
+    chk(re.search(r"APPROVAL_TIMEOUT_FALLBACK_SEC: number = 60\b", vm) is not None,
+        "兜底窗口 = 60s（实测值）")
+    chk("timeout_s" in vm and "run_c14b9bea" in vm, "注释里留下实测证据（防后人再猜）")
+    chk("req.timeout_sec > 0" in vm, "setPendingApproval 优先用服务端 timeout_s")
+    i_resume = vm.find("resumeFromBackground(): void")
+    tail = vm[i_resume:i_resume + 900] if i_resume != -1 else ""
+    chk("this.approvalPollTick()" in tail, "回前台立刻对账审批（不等 5s 拍点）")
+    chk("this.baselinePollTick(this.activeRunId)" in tail, "回前台立刻补一拍 run 状态")
+    import json as _json
+    ok_keys = True
+    for loc in ("base", "zh_CN", "en_US"):
+        try:
+            d = _json.loads((ROOT / "entry/src/main/resources" / loc / "element/string.json").read_text(encoding="utf-8"))
+            if not any(x["name"] == "approval_countdown_over" for x in d["string"]):
+                ok_keys = False
+        except Exception:
+            ok_keys = False
+    chk(ok_keys, "三套资源都有 approval_countdown_over（倒计时归零不说「已过期」）")
+
     print()
     if failures:
         print(f"RESILIENCE_SELFTEST: FAIL（{len(failures)}/{checks} 项）")

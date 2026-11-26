@@ -691,6 +691,11 @@ export struct ChatPage {
       if (pa.kind !== 'tool_approval') {
         return context.resourceManager.getStringSync($r('app.string.approval_type_fmt'), pa.kind);
       }
+      // 2026-11-26：倒计时归零不等于「服务端已放弃」——服务端才是真相（5s 轮询）。
+      // 本地预估窗口走完而卡片还在时，如实说「仍在等待」，不假装已过期。
+      if (this.v().approvalCountdownSec <= 0) {
+        return context.resourceManager.getStringSync($r('app.string.approval_countdown_over'));
+      }
       return context.resourceManager.getStringSync($r('app.string.approval_countdown_fmt'), String(this.v().approvalCountdownSec));
     } catch (err) {
       let e: Error = err as Error;

@@ -1403,6 +1403,10 @@
     {
       "name": "signout_done",
       "value": "Signed out"
+    },
+    {
+      "name": "approval_countdown_over",
+      "value": "Past the estimated window — still waiting for the server to confirm"
     }
   ]
 }

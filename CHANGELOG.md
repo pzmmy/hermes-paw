@@ -4,6 +4,13 @@
 
 ## [未发布]
 
+- 审批窗口对齐服务端：`pending_controls` 不带超时字段，实测服务端窗口 = 60s
+  （挂起不表态，t=60s 自动拒绝、run 转回 running）。客户端改为优先用载荷 `timeout_s`、
+  未下发则用实测兜底 60s，并在注释里留实测 run_id 防后人再猜
+- 回前台立刻对账：`resumeFromBackground()` 同时补一拍 run 状态与审批状态，不等 5s 拍点
+- 倒计时归零但卡片仍在时，文案改为「已超过预估窗口，仍在等待服务端确认」，
+  不再让本地时钟替服务端宣布过期
+
 - 发送幂等：`POST /v1/runs` 带 `Idempotency-Key`。同一内容重试复用键 → 网关回放既有 run，
   不再起第二个、不二次烧 token；内容变化自动换键（避免 409 `idempotency_key_conflict`）。
   真网关实测：同键同载荷 → 同一 run_id + `Idempotency-Replayed: true`；同键异载荷 → 409

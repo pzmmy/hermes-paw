@@ -65,7 +65,11 @@ export function isIncompleteStatus(status: string): boolean {
   return status === RunStatus.INCOMPLETE;
 }
 
-/** 审批控制条目（A-5 实证：GET /v1/runs/{id} 暴露 pending_controls） */
+/** 审批控制条目（A-5 实证：GET /v1/runs/{id} 暴露 pending_controls）
+ *  2026-11-26：补 timeout_sec —— 网关 PendingControls.register() 会把窗口长度
+ *  写进 prompt['timeout_s']（gateway/session_pending_controls.py:35），默认 300s
+ *  （gateway/run.py:3708 `_APPROVAL_TIMEOUT_SECONDS = 300`）。客户端此前硬编码 60s，
+ *  比服务端短 4 分钟，会把「还能批」显示成「已过期」。0 = 载荷未给，按默认值兜底。 */
 export interface ApprovalControl {
   kind: string;
   prompt_id: string;
@@ -73,6 +77,8 @@ export interface ApprovalControl {
   command: string;
   description: string;
   choices: string[];
+  /** 服务端审批窗口长度（秒）；0 = 载荷未提供。 */
+  timeout_sec: number;
 }
 
 /** Run 状态快照（execution_generation 为顶层字段，selftest W-02b:368） */
@@ -151,7 +157,8 @@ export function parseApprovalControl(d: Record<string, Object>): ApprovalControl
     execution_generation: numFrom(d['execution_generation']),
     command: strFrom(d['command']),
     description: strFrom(d['description']),
-    choices: parseChoices(d['choices'])
+    choices: parseChoices(d['choices']),
+    timeout_sec: numFrom(d['timeout_s'])
   };
 }
 
@@ -167,7 +174,8 @@ function parseControls(pc: Object): ApprovalControl[] {
       execution_generation: numFrom(c['execution_generation']),
       command: strFrom(c['command']),
       description: strFrom(c['description']),
-      choices: parseChoices(c['choices'])
+      choices: parseChoices(c['choices']),
+      timeout_sec: numFrom(c['timeout_s'])
     };
     out.push(ac);
   }

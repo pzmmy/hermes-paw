@@ -999,6 +999,42 @@ CI 也跑同一条；默认随环境会让门禁在有 `LANG=en_US` 的机器上
 
 未验：401 路径的**真机**表现（需造一个错 key 的 profile），目前只有编译 + 静态门禁覆盖。
 
+### 2.28 审批窗口对齐服务端口径（2026-11-26）
+
+**问题**：审批卡的倒计时是本地算的，但那个数字从来没跟服务端对过账。
+
+**先把事实测出来**（改动之前，别先改代码）：
+
+1. `GET /v1/runs/{id}` 的 `pending_controls[]` 实际字段只有
+   `choices / command / description / execution_generation / kind / prompt_id`，
+   **不含 `timeout_s`、也不含任何绝对过期时间**（run_673708…，实测打印全部键名）。
+2. 因此「窗口多长」只能看服务端行为：挂起一个审批不表态，看它何时自动关闭。
+   `run_c14b9bea866f490fa87578983dd602cf`，t=60s 时 `status` 由
+   `waiting_for_approval` 变回 `running`、`pending_controls` 1→0 —— **窗口是 60 秒**，
+   自动拒绝后 run 继续跑（不是失败）。
+
+**我先猜错了一次，记下来**：从 `gateway/run.py:3708 _APPROVAL_TIMEOUT_SECONDS = 300`
+推断「服务端 300s、客户端 60s 少了 4 分钟」，据此把兜底改成 300s。测量结果直接推翻——
+那个常量属于另一条审批路径。教训：跨模块看到常量不能直接当成本路径的事实。
+
+**最终改法**（网关不改，纯客户端）：
+
+| 改动 | 内容 |
+|---|---|
+| 模型 | `ApprovalControl` 增 `timeout_sec`，两个解析点都读 `timeout_s`（网关将来若下发即生效） |
+| 窗口 | 优先 `req.timeout_sec`；未下发则兜底 **60s**（实测值），常量名 `APPROVAL_TIMEOUT_FALLBACK_SEC` |
+| 回前台 | `resumeFromBackground()` 立刻补一拍 run 状态 + 立刻 `approvalPollTick()`，不等 5s 拍点 |
+| 文案 | 本地倒计时归零但卡片还在时，用 `approval_countdown_over` 说「已超过预估窗口，仍在等待服务端确认」——**不假装已过期**（服务端才是真相） |
+
+**为什么保留本地倒计时**：它只是给人看的时间感，服务端状态由 5s 轮询裁决；
+倒计时与轮询是两套东西，所以兜底值错了只会误导眼睛，不会误发请求。反过来说——
+也正因为只是显示，才更需要跟实测值对齐。
+
+**验证**：`tools/resilience-selftest.py` 扩到 23 项（新增 [D] 组：字段解析、兜底值 = 60、
+实测证据留在注释、回前台两个立即补拍、三语文案齐全）；负向对照实测能红。
+真编译 `CompileArkTS 1s 148ms` BUILD SUCCESSFUL。
+真机未验（当时无线调试未连、模拟器未启动），差异点仅 UI 文案与回前台时序。
+
 ## 3. 被证伪 / 被撤回的结论（写下来是为了不再犯）
 
 ### 3.1 DB PRAGMA 调优无效（S10c，已回退）
